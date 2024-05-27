@@ -12,6 +12,10 @@ default-run = "relay-tester"
 [[bin]]
 name = "relay-tester"
 
+[[bin]]
+name = "generate-keypair"
+path = "src/bin/generate_keypair.rs"
+
 [dependencies]
 base64 = "0.21"
 colorful = "0.2"
