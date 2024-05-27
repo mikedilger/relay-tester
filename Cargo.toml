@@ -7,5 +7,23 @@ description = "Relay test suite for nostr relays"
 repository = "https://github.com/mikedilger/relay-tester"
 keywords = [ "nostr" ]
 license = "MIT"
+default-run = "relay-tester"
+
+[[bin]]
+name = "relay-tester"
 
 [dependencies]
+base64 = "0.21"
+colorful = "0.2"
+futures-util = "0.3"
+http = "1.1"
+lazy_static = "1.4"
+nostr-types = { git = "https://github.com/mikedilger/nostr-types" }
+rand = "0.8"
+rand_core = "0.6"
+secp256k1 = "0.29"
+serde = { version = "1.0", features = [ "derive" ] }
+serde_json = "1.0"
+tokio = { version = "1", features = ["full"] }
+tokio-tungstenite = { version = "0.21", features = [ "connect", "handshake", "rustls-tls-webpki-roots" ] }
+tungstenite = { version = "0.21", features = [ "rustls-tls-webpki-roots" ] }
