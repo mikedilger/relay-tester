@@ -5,7 +5,10 @@ use futures_util::stream::FusedStream;
 use futures_util::{SinkExt, StreamExt};
 use http::Uri;
 use lazy_static::lazy_static;
-use nostr_types::{ClientMessage, Event, Filter, RelayMessage, SubscriptionId};
+use nostr_types::{
+    ClientMessage, Event, EventKind, Filter, Id, PreEvent, PublicKey, RelayMessage, Signer,
+    SubscriptionId, Tag, Unixtime,
+};
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender};
 use tokio::task::JoinHandle;
@@ -49,32 +52,59 @@ fn url_to_host_and_uri(url: &str) -> (String, Uri) {
 type Ws =
     tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
 
+#[derive(Debug, Clone, Default)]
+pub enum AuthState {
+    #[default]
+    NotYetRequested,
+    InProgress(Id),
+    Success,
+    Failure(String),
+    Duplicate,
+}
+
 #[derive(Debug)]
 pub struct Probe {
+    relay_url: String,
     sender: Sender<Command>,
     receiver: Receiver<RelayMessage>,
+    unprocessed_relay_message: Option<RelayMessage>,
     join_handle: JoinHandle<()>,
+    signer: Box<dyn Signer>,
+    auth_state: AuthState,
 }
 
 impl Probe {
-    pub fn new(relay_url: String) -> Probe {
+    pub fn new(relay_url: String, signer: Box<dyn Signer>) -> Probe {
         let (to_probe, from_main) = tokio::sync::mpsc::channel::<Command>(100);
         let (to_main, from_probe) = tokio::sync::mpsc::channel::<RelayMessage>(100);
+        let relay_url_thread = relay_url.clone();
         let join_handle = tokio::spawn(async move {
             let mut probe = ProbeInner {
                 input: from_main,
                 output: to_main,
             };
-            if let Err(e) = probe.connect_and_listen(&relay_url).await {
+            if let Err(e) = probe.connect_and_listen(&relay_url_thread).await {
                 eprintln!("{}", e);
             }
         });
 
         Probe {
+            relay_url,
             sender: to_probe,
             receiver: from_probe,
+            unprocessed_relay_message: None,
             join_handle,
+            signer,
+            auth_state: AuthState::NotYetRequested,
         }
+    }
+
+    pub fn public_key(&self) -> PublicKey {
+        self.signer.public_key()
+    }
+
+    pub fn auth_state(&self) -> AuthState {
+        self.auth_state.clone()
     }
 
     pub async fn send(&self, command: Command) -> Result<(), Error> {
@@ -82,9 +112,99 @@ impl Probe {
     }
 
     pub async fn wait_for_a_response(&mut self) -> Result<RelayMessage, Error> {
-        match self.receiver.recv().await {
-            Some(rm) => Ok(rm),
-            None => Err(Error::ChannelIsClosed),
+        // If one was pushed back, give them that
+        if self.unprocessed_relay_message.is_some() {
+            let output = std::mem::take(&mut self.unprocessed_relay_message);
+            Ok(output.unwrap())
+        } else {
+            loop {
+                let timeout = tokio::time::timeout(Duration::new(1, 0), self.receiver.recv());
+                match timeout.await {
+                    Ok(Some(output)) => match output {
+                        RelayMessage::Ok(_, _, _) => {
+                            if let Some(rm) = self.process_ok(output).await? {
+                                // It wasn't our auth response, hand it to the caller
+                                return Ok(rm);
+                            } else {
+                                // it was an AUTH response. Listen for the next response.
+                                continue;
+                            }
+                        }
+                        RelayMessage::Auth(challenge) => {
+                            self.authenticate(challenge).await?;
+
+                            // It was an AUTH request. Listen for the next response.
+                            continue;
+                        }
+                        other => return Ok(other),
+                    },
+                    Ok(None) => return Err(Error::ChannelIsClosed),
+                    Err(elapsed) => return Err(elapsed.into()),
+                }
+            }
+        }
+    }
+
+    pub fn push_back_relay_message(&mut self, rm: RelayMessage) {
+        if self.unprocessed_relay_message.is_some() {
+            unreachable!();
+        } else {
+            self.unprocessed_relay_message = Some(rm);
+        }
+    }
+
+    /// This authenticates with a challenge that the relay previously presented.
+    async fn authenticate(&mut self, challenge: String) -> Result<(), Error> {
+        if !matches!(self.auth_state, AuthState::NotYetRequested) {
+            self.auth_state = AuthState::Duplicate;
+            return Ok(());
+        }
+
+        let pre_event = PreEvent {
+            pubkey: self.signer.public_key(),
+            created_at: Unixtime::now().unwrap(),
+            kind: EventKind::Auth,
+            tags: vec![
+                Tag::new(&["relay", &self.relay_url]),
+                Tag::new(&["challenge", &challenge]),
+            ],
+            content: "".to_string(),
+        };
+
+        let event = self.signer.sign_event(pre_event)?;
+
+        self.auth_state = AuthState::InProgress(event.id);
+
+        Ok(self.sender.send(Command::Auth(event)).await?)
+    }
+
+    // internally processes Ok messages prior to returning them, just in case
+    // they are related to the authentication process
+    async fn process_ok(&mut self, rm: RelayMessage) -> Result<Option<RelayMessage>, Error> {
+        match rm {
+            RelayMessage::Ok(id, is_ok, ref reason) => {
+                if let AuthState::InProgress(sent_id) = self.auth_state {
+                    if id == sent_id {
+                        self.auth_state = if is_ok {
+                            AuthState::Success
+                        } else {
+                            AuthState::Failure(reason.clone())
+                        };
+                        return Ok(None);
+                    } else {
+                        // Was an OK about some other event (not the auth event)
+                        return Ok(Some(rm));
+                    }
+                } else {
+                    // Was an OK about some other event (we haven't sent auth)
+                    return Ok(Some(rm));
+                }
+            }
+            _ => {
+                return Err(Error::General(
+                    "process_ok() called with the wrong kind of RelayMessage".to_owned(),
+                ))
+            }
         }
     }
 
