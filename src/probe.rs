@@ -1,10 +1,10 @@
 use crate::error::Error;
+use crate::PREFIXES;
 use base64::Engine;
 use colorful::{Color, Colorful};
 use futures_util::stream::FusedStream;
 use futures_util::{SinkExt, StreamExt};
 use http::Uri;
-use lazy_static::lazy_static;
 use nostr_types::{
     ClientMessage, Event, EventKind, Filter, Id, PreEvent, PublicKey, RelayMessage, Signer,
     SubscriptionId, Tag, Unixtime,
@@ -22,18 +22,6 @@ pub enum Command {
     PostEvent(Event),
     FetchEvents(SubscriptionId, Vec<Filter>),
     Exit,
-}
-
-// Colorful prefixes for terminal output
-pub struct Prefixes {
-    from_relay: String,
-    sending: String,
-}
-lazy_static! {
-    pub static ref PREFIXES: Prefixes = Prefixes {
-        from_relay: "Relay".color(Color::Blue).to_string(),
-        sending: "Sending".color(Color::MediumPurple).to_string(),
-    };
 }
 
 fn url_to_host_and_uri(url: &str) -> (String, Uri) {
@@ -56,6 +44,7 @@ type Ws =
 pub enum AuthState {
     #[default]
     NotYetRequested,
+    Challenged(String),
     InProgress(Id),
     Success,
     Failure(String),
@@ -67,10 +56,10 @@ pub struct Probe {
     relay_url: String,
     sender: Sender<Command>,
     receiver: Receiver<RelayMessage>,
-    unprocessed_relay_message: Option<RelayMessage>,
     join_handle: JoinHandle<()>,
     signer: Box<dyn Signer>,
     auth_state: AuthState,
+    dup_auth: bool,
 }
 
 impl Probe {
@@ -92,10 +81,10 @@ impl Probe {
             relay_url,
             sender: to_probe,
             receiver: from_probe,
-            unprocessed_relay_message: None,
             join_handle,
             signer,
             auth_state: AuthState::NotYetRequested,
+            dup_auth: false,
         }
     }
 
@@ -113,69 +102,62 @@ impl Probe {
 
     pub async fn wait_for_a_response(&mut self) -> Result<RelayMessage, Error> {
         // If one was pushed back, give them that
-        if self.unprocessed_relay_message.is_some() {
-            let output = std::mem::take(&mut self.unprocessed_relay_message);
-            Ok(output.unwrap())
-        } else {
-            loop {
-                let timeout = tokio::time::timeout(Duration::new(1, 0), self.receiver.recv());
-                match timeout.await {
-                    Ok(Some(output)) => match output {
-                        RelayMessage::Ok(_, _, _) => {
-                            if let Some(rm) = self.process_ok(output).await? {
-                                // It wasn't our auth response, hand it to the caller
-                                return Ok(rm);
-                            } else {
-                                // it was an AUTH response. Listen for the next response.
-                                continue;
-                            }
-                        }
-                        RelayMessage::Auth(challenge) => {
-                            self.authenticate(challenge).await?;
-
-                            // It was an AUTH request. Listen for the next response.
+        loop {
+            let timeout = tokio::time::timeout(Duration::new(1, 0), self.receiver.recv());
+            match timeout.await {
+                Ok(Some(output)) => match output {
+                    RelayMessage::Ok(_, _, _) => {
+                        if let Some(rm) = self.process_ok(output).await? {
+                            // It wasn't our auth response, hand it to the caller
+                            return Ok(rm);
+                        } else {
+                            // it was an AUTH response. Listen for the next response.
                             continue;
                         }
-                        other => return Ok(other),
-                    },
-                    Ok(None) => return Err(Error::ChannelIsClosed),
-                    Err(elapsed) => return Err(elapsed.into()),
-                }
+                    }
+                    RelayMessage::Auth(challenge) => {
+                        match self.auth_state {
+                            AuthState::NotYetRequested => {
+                                self.auth_state = AuthState::Challenged(challenge);
+                            },
+                            _ => {
+                                self.dup_auth = true;
+                            }
+                        }
+
+                        // It was an AUTH request. Listen for the next response.
+                        continue;
+                    }
+                    other => return Ok(other),
+                },
+                Ok(None) => return Err(Error::ChannelIsClosed),
+                Err(elapsed) => return Err(elapsed.into()),
             }
         }
     }
 
-    pub fn push_back_relay_message(&mut self, rm: RelayMessage) {
-        if self.unprocessed_relay_message.is_some() {
-            unreachable!();
-        } else {
-            self.unprocessed_relay_message = Some(rm);
+    /// This authenticates with a challenge that the relay previously presented,
+    /// if in that state.
+    pub async fn authenticate(&mut self) -> Result<(), Error> {
+        if let AuthState::Challenged(ref challenge) = self.auth_state {
+            let pre_event = PreEvent {
+                pubkey: self.signer.public_key(),
+                created_at: Unixtime::now().unwrap(),
+                kind: EventKind::Auth,
+                tags: vec![
+                    Tag::new(&["relay", &self.relay_url]),
+                    Tag::new(&["challenge", challenge]),
+                ],
+                content: "".to_string(),
+            };
+
+            let event = self.signer.sign_event(pre_event)?;
+
+            self.auth_state = AuthState::InProgress(event.id);
+            self.sender.send(Command::Auth(event)).await?;
         }
-    }
 
-    /// This authenticates with a challenge that the relay previously presented.
-    async fn authenticate(&mut self, challenge: String) -> Result<(), Error> {
-        if !matches!(self.auth_state, AuthState::NotYetRequested) {
-            self.auth_state = AuthState::Duplicate;
-            return Ok(());
-        }
-
-        let pre_event = PreEvent {
-            pubkey: self.signer.public_key(),
-            created_at: Unixtime::now().unwrap(),
-            kind: EventKind::Auth,
-            tags: vec![
-                Tag::new(&["relay", &self.relay_url]),
-                Tag::new(&["challenge", &challenge]),
-            ],
-            content: "".to_string(),
-        };
-
-        let event = self.signer.sign_event(pre_event)?;
-
-        self.auth_state = AuthState::InProgress(event.id);
-
-        Ok(self.sender.send(Command::Auth(event)).await?)
+        Ok(())
     }
 
     // internally processes Ok messages prior to returning them, just in case

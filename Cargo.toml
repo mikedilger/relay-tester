@@ -23,6 +23,7 @@ futures-util = "0.3"
 http = "1.1"
 lazy_static = "1.4"
 nostr-types = { git = "https://github.com/mikedilger/nostr-types" }
+paste = "1.0"
 rand = "0.8"
 rand_core = "0.6"
 secp256k1 = "0.29"
