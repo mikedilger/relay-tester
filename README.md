@@ -12,6 +12,9 @@ WARNING: This package is not meant to test a relay implementation, not a live re
 
 - We take no precautions to prevent flooding or filling a relay with junk
 - We take no precautions around the private key used to test the relay implementation
+- We presume the relay is close (in terms of latency) and not busy, and that a one-second
+  timeout is plenty to determine if the relay won't be replying.
+
 
 ### STEP 2
 
