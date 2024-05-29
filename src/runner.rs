@@ -2,8 +2,8 @@ use crate::error::Error;
 use crate::probe::{AuthState, Command, Probe};
 use colorful::{Color, Colorful};
 use nostr_types::{
-    EventKind, Filter, KeySigner, PreEvent, PrivateKey, RelayMessage, Signer, SubscriptionId, Tag,
-    Unixtime
+    EventKind, Filter, Id, IdHex, KeySigner, PreEvent, PrivateKey, RelayMessage, Signer,
+    SubscriptionId, Tag, Unixtime
 };
 use paste::paste;
 use std::fmt;
@@ -56,6 +56,7 @@ macro_rules! run_test {
 pub struct Runner {
     probe: Probe,
     results: Vec<Test>,
+    public_write_id: Option<Id>,
 }
 
 impl Runner {
@@ -63,6 +64,7 @@ impl Runner {
         Runner {
             probe,
             results: Default::default(),
+            public_write_id: None,
         }
     }
 
@@ -70,12 +72,13 @@ impl Runner {
         run_test!(self, initial_prompt_for_auth);
         run_test!(self, eose);
         run_test!(self, public_write);
+        run_test!(self, public_readback);
 
         // Authenticate if we can before continuing
         self.probe.authenticate().await?;
 
-
         run_test!(self, auth);
+
         Ok(())
     }
 
@@ -152,14 +155,10 @@ impl Runner {
     }
 
     async fn test_public_write(&mut self) -> Result<Outcome, Error> {
-        // Generate a random keypair
         let private_key = PrivateKey::generate();
         let signer = KeySigner::from_private_key(private_key, "", 8)?;
-        let public_key = signer.public_key();
-
-        // Generate an event from them
         let pre_event = PreEvent {
-            pubkey: public_key,
+            pubkey: signer.public_key(),
             created_at: Unixtime::now().unwrap(),
             kind: EventKind::TextNote,
             tags: vec![
@@ -167,47 +166,60 @@ impl Runner {
             ],
             content: "This is a test from a random keypair. Feel free to delete.".to_string(),
         };
-        let event = signer.sign_event(pre_event)?;
-        let initial_id = event.id;
 
-        // Post the event
-        self.probe.send(Command::PostEvent(event)).await?;
+        let event_id = self.probe.post(pre_event, Some(Box::new(signer))).await?;
 
         // Wait for an Ok response
-        let outcome;
-        loop {
-            let rm = match self.probe.wait_for_a_response().await {
-                Ok(rm) => rm,
-                Err(Error::Timeout(_)) => {
-                    outcome = Outcome::Fail2("No response to an EVENT submission".to_owned());
-                    break;
-                },
-                Err(e) => return Err(e)
-            };
-
-            match rm {
-                RelayMessage::Ok(id, ok, reason) => {
-                    if id == initial_id {
-                        if ok {
-                            outcome = Outcome::Info("Accepts events from the public".to_owned());
-                        } else {
-                            outcome = Outcome::Info(reason);
-                        }
+        let outcome = match self.probe.wait_for_ok().await {
+            Ok((id, ok, reason)) => {
+                if id == event_id {
+                    if ok {
+                        self.public_write_id = Some(event_id);
+                        Outcome::Info("Accepts events from the public".to_owned())
                     } else {
-                        outcome = Outcome::Fail2("Responded to EVENT with OK with a different id".to_owned());
+                        Outcome::Info(reason)
                     }
-                    break;
-                },
-                _ => {
-                    // We didn't expect that
-                    continue;
+                } else {
+                    Outcome::Fail2("Responded to EVENT with OK with a different id".to_owned())
                 }
-            }
+            },
+            Err(Error::Timeout(_)) => Outcome::Fail2("No response to an EVENT submission".to_owned()),
+            Err(e) => return Err(e),
         };
 
-        // FIXME this isn't good enough, we need to read it back and make sure it is there.
-
         Ok(outcome)
+    }
+
+    async fn test_public_readback(&mut self) -> Result<Outcome, Error> {
+        match self.public_write_id {
+            None => Ok(Outcome::Info("Couldn't write, so not reading back".to_owned())),
+            Some(id) => {
+                let idhex: IdHex = id.into();
+                let our_sub_id = SubscriptionId("public_readback".to_string());
+                let mut filter = Filter::new();
+                filter.add_id(&idhex);
+                self.probe.send(Command::FetchEvents(our_sub_id.clone(), vec![filter])).await?;
+
+                // Wait for events
+                let outcome = match self.probe.wait_for_events("public_readback").await {
+                    Ok(events) => {
+                        if events.len() > 0 {
+                            if events[0].id == id {
+                                Outcome::Pass
+                            } else {
+                                Outcome::Fail2("Returned event is wrong".to_owned())
+                            }
+                        } else {
+                            Outcome::Fail2("Failed to retrieve event we just successfully submitted.".to_owned())
+                        }
+                    },
+                    Err(Error::Timeout(_)) => Outcome::Fail2("No response to an REQ submission".to_owned()),
+                    Err(e) => return Err(e),
+                };
+
+                Ok(outcome)
+            }
+        }
     }
 
     async fn test_auth(&mut self) -> Result<Outcome, Error> {

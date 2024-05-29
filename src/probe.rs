@@ -100,6 +100,54 @@ impl Probe {
         Ok(self.sender.send(command).await?)
     }
 
+    pub async fn post(
+        &self,
+        mut pre_event: PreEvent,
+        signer: Option<Box<dyn Signer>>
+    ) -> Result<Id, Error> {
+        let event = {
+            if let Some(s) = signer {
+                s.sign_event(pre_event)?
+            } else {
+                pre_event.pubkey = self.signer.public_key();
+                self.signer.sign_event(pre_event)?
+            }
+        };
+        let event_id = event.id;
+        self.send(Command::PostEvent(event)).await?;
+        Ok(event_id)
+    }
+
+    pub async fn wait_for_ok(&mut self) -> Result<(Id, bool, String), Error> {
+        loop {
+            let rm = self.wait_for_a_response().await?;
+            if let RelayMessage::Ok(id, ok, reason) = rm {
+                return Ok((id, ok, reason));
+            }
+        }
+    }
+
+    pub async fn wait_for_events(&mut self, subscription: &str) -> Result<Vec<Event>, Error> {
+        let mut events: Vec<Event> = Vec::new();
+        loop {
+            let rm = self.wait_for_a_response().await?;
+            match rm {
+                RelayMessage::Event(sub, box_event) => {
+                    if *sub == subscription {
+                        events.push((*box_event).clone());
+                    }
+                },
+                RelayMessage::Eose(sub) => {
+                    if *sub == subscription {
+                        return Ok(events);
+                    }
+                },
+                _ => { },
+            }
+
+        }
+    }
+
     pub async fn wait_for_a_response(&mut self) -> Result<RelayMessage, Error> {
         // If one was pushed back, give them that
         loop {
