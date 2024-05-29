@@ -6,8 +6,8 @@ use crate::error::Error;
 use crate::probe::Probe;
 use crate::runner::Runner;
 use colorful::{Color, Colorful};
-use nostr_types::{KeySigner, PrivateKey};
 use lazy_static::lazy_static;
+use nostr_types::{KeySigner, PrivateKey};
 use std::env;
 
 #[tokio::main]

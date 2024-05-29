@@ -3,7 +3,7 @@ use crate::probe::{AuthState, Command, Probe};
 use colorful::{Color, Colorful};
 use nostr_types::{
     EventKind, Filter, Id, IdHex, KeySigner, PreEvent, PrivateKey, RelayMessage, Signer,
-    SubscriptionId, Tag, Unixtime
+    SubscriptionId, Tag, Unixtime,
 };
 use paste::paste;
 use std::fmt;
@@ -131,8 +131,8 @@ impl Runner {
                 Err(Error::Timeout(_)) => {
                     outcome = Outcome::Fail;
                     break;
-                },
-                Err(e) => return Err(e)
+                }
+                Err(e) => return Err(e),
             };
 
             match rm {
@@ -149,7 +149,7 @@ impl Runner {
                     continue;
                 }
             }
-        };
+        }
 
         Ok(outcome)
     }
@@ -161,9 +161,7 @@ impl Runner {
             pubkey: signer.public_key(),
             created_at: Unixtime::now().unwrap(),
             kind: EventKind::TextNote,
-            tags: vec![
-                Tag::new(&["test"]),
-            ],
+            tags: vec![Tag::new(&["test"])],
             content: "This is a test from a random keypair. Feel free to delete.".to_string(),
         };
 
@@ -182,8 +180,10 @@ impl Runner {
                 } else {
                     Outcome::Fail2("Responded to EVENT with OK with a different id".to_owned())
                 }
-            },
-            Err(Error::Timeout(_)) => Outcome::Fail2("No response to an EVENT submission".to_owned()),
+            }
+            Err(Error::Timeout(_)) => {
+                Outcome::Fail2("No response to an EVENT submission".to_owned())
+            }
             Err(e) => return Err(e),
         };
 
@@ -192,13 +192,17 @@ impl Runner {
 
     async fn test_public_readback(&mut self) -> Result<Outcome, Error> {
         match self.public_write_id {
-            None => Ok(Outcome::Info("Couldn't write, so not reading back".to_owned())),
+            None => Ok(Outcome::Info(
+                "Couldn't write, so not reading back".to_owned(),
+            )),
             Some(id) => {
                 let idhex: IdHex = id.into();
                 let our_sub_id = SubscriptionId("public_readback".to_string());
                 let mut filter = Filter::new();
                 filter.add_id(&idhex);
-                self.probe.send(Command::FetchEvents(our_sub_id.clone(), vec![filter])).await?;
+                self.probe
+                    .send(Command::FetchEvents(our_sub_id.clone(), vec![filter]))
+                    .await?;
 
                 // Wait for events
                 let outcome = match self.probe.wait_for_events("public_readback").await {
@@ -210,10 +214,15 @@ impl Runner {
                                 Outcome::Fail2("Returned event is wrong".to_owned())
                             }
                         } else {
-                            Outcome::Fail2("Failed to retrieve event we just successfully submitted.".to_owned())
+                            Outcome::Fail2(
+                                "Failed to retrieve event we just successfully submitted."
+                                    .to_owned(),
+                            )
                         }
-                    },
-                    Err(Error::Timeout(_)) => Outcome::Fail2("No response to an REQ submission".to_owned()),
+                    }
+                    Err(Error::Timeout(_)) => {
+                        Outcome::Fail2("No response to an REQ submission".to_owned())
+                    }
                     Err(e) => return Err(e),
                 };
 
@@ -243,14 +252,15 @@ impl Runner {
 
         Ok(match self.probe.auth_state() {
             AuthState::NotYetRequested => Outcome::Fail,
-            AuthState::Challenged(_) => Outcome::Fail2("Challenged but we failed to AUTH back".to_string()),
+            AuthState::Challenged(_) => {
+                Outcome::Fail2("Challenged but we failed to AUTH back".to_string())
+            }
             AuthState::InProgress(_) => Outcome::Fail2("Did not OK the AUTH".to_string()),
             AuthState::Success => Outcome::Pass,
             AuthState::Failure(s) => Outcome::Fail2(s),
             AuthState::Duplicate => Outcome::Fail2("AUTHed multiple times".to_string()),
         })
     }
-
 
     /*
     // authed submission of other people's events

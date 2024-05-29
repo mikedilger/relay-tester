@@ -54,10 +54,10 @@ pub enum AuthState {
 #[derive(Debug)]
 pub struct Probe {
     relay_url: String,
+    signer: Box<dyn Signer>,
     sender: Sender<Command>,
     receiver: Receiver<RelayMessage>,
-    join_handle: JoinHandle<()>,
-    signer: Box<dyn Signer>,
+    join_handle: Option<JoinHandle<()>>,
     auth_state: AuthState,
     dup_auth: bool,
 }
@@ -79,10 +79,10 @@ impl Probe {
 
         Probe {
             relay_url,
+            signer,
             sender: to_probe,
             receiver: from_probe,
-            join_handle,
-            signer,
+            join_handle: Some(join_handle),
             auth_state: AuthState::NotYetRequested,
             dup_auth: false,
         }
@@ -103,7 +103,7 @@ impl Probe {
     pub async fn post(
         &self,
         mut pre_event: PreEvent,
-        signer: Option<Box<dyn Signer>>
+        signer: Option<Box<dyn Signer>>,
     ) -> Result<Id, Error> {
         let event = {
             if let Some(s) = signer {
@@ -136,15 +136,14 @@ impl Probe {
                     if *sub == subscription {
                         events.push((*box_event).clone());
                     }
-                },
+                }
                 RelayMessage::Eose(sub) => {
                     if *sub == subscription {
                         return Ok(events);
                     }
-                },
-                _ => { },
+                }
+                _ => {}
             }
-
         }
     }
 
@@ -167,7 +166,7 @@ impl Probe {
                         match self.auth_state {
                             AuthState::NotYetRequested => {
                                 self.auth_state = AuthState::Challenged(challenge);
-                            },
+                            }
                             _ => {
                                 self.dup_auth = true;
                             }
@@ -240,7 +239,46 @@ impl Probe {
 
     pub async fn exit(self) -> Result<(), Error> {
         self.sender.send(Command::Exit).await?;
-        Ok(self.join_handle.await?)
+        if let Some(join_handle) = self.join_handle {
+            join_handle.await?;
+        }
+
+        Ok(())
+    }
+
+    pub async fn reconnect(&mut self, delay: Duration) -> Result<(), Error> {
+        self.sender.send(Command::Exit).await?;
+
+        let mut join_handle: Option<JoinHandle<()>> = None;
+        std::mem::swap(&mut self.join_handle, &mut join_handle);
+        if join_handle.is_some() {
+            let join_handle = join_handle.unwrap();
+            join_handle.await?;
+        }
+
+        tokio::time::sleep(delay).await;
+
+        let (to_probe, from_main) = tokio::sync::mpsc::channel::<Command>(100);
+        let (to_main, from_probe) = tokio::sync::mpsc::channel::<RelayMessage>(100);
+
+        let relay_url_thread = self.relay_url.clone();
+        let new_join_handle = tokio::spawn(async move {
+            let mut probe = ProbeInner {
+                input: from_main,
+                output: to_main,
+            };
+            if let Err(e) = probe.connect_and_listen(&relay_url_thread).await {
+                eprintln!("{}", e);
+            }
+        });
+
+        self.sender = to_probe;
+        self.receiver = from_probe;
+        self.join_handle = Some(new_join_handle);
+        self.auth_state = AuthState::NotYetRequested;
+        self.dup_auth = false;
+
+        Ok(())
     }
 }
 
