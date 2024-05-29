@@ -1,33 +1,12 @@
 use crate::error::Error;
 use crate::probe::{AuthState, Command, Probe};
-use colorful::{Color, Colorful};
+use crate::results::{Outcome, RESULTS, test_no};
 use nostr_types::{
     EventKind, Filter, Id, IdHex, KeySigner, PreEvent, PrivateKey, RelayMessage, Signer,
     SubscriptionId, Tag, Unixtime,
 };
 use paste::paste;
 use std::fmt;
-
-#[derive(Debug)]
-pub enum Outcome {
-    Untested,
-    Pass,
-    Fail,
-    Fail2(String),
-    Info(String),
-}
-
-impl fmt::Display for Outcome {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            Outcome::Untested => write!(f, "????"),
-            Outcome::Pass => write!(f, "{}", "PASS".color(Color::Green)),
-            Outcome::Fail => write!(f, "{}", "FAIL".color(Color::Red)),
-            Outcome::Fail2(s) => write!(f, "{} ({})", "FAIL".color(Color::Red), s),
-            Outcome::Info(s) => write!(f, "{} ({})", "INFO".color(Color::Gold1), s),
-        }
-    }
-}
 
 #[derive(Debug)]
 pub struct Test {
@@ -41,53 +20,53 @@ impl fmt::Display for Test {
     }
 }
 
+pub struct Runner {
+    probe: Probe,
+    public_write_id: Option<Id>,
+}
+
 macro_rules! run_test {
     ($self:ident, $name:ident) => {
         paste! {
             let outcome = $self.[<test_ $name>]().await?;
-            $self.results.push(Test {
-                name: stringify!($name).to_string(),
-                outcome
-            });
+            let no = test_no(stringify!($name));
+            (*(*RESULTS).write().unwrap())[no] = outcome;
         }
     };
 }
-
-pub struct Runner {
-    probe: Probe,
-    results: Vec<Test>,
-    public_write_id: Option<Id>,
-}
-
 impl Runner {
     pub fn new(probe: Probe) -> Runner {
         Runner {
             probe,
-            results: Default::default(),
             public_write_id: None,
         }
     }
 
     pub async fn run(&mut self) -> Result<(), Error> {
-        run_test!(self, initial_prompt_for_auth);
-        run_test!(self, eose);
-        run_test!(self, public_write);
-        run_test!(self, public_readback);
+        run_test!(self, prompts_for_auth_initially);
+        run_test!(self, supports_eose);
+        run_test!(self, public_can_write);
+        run_test!(self, public_can_read_back);
+
+        run_test!(self, can_auth_as_unknown);
+        //run_test!(self, unknown_write);
+        //run_test!(self, unknown_readback);
+
 
         // Authenticate if we can before continuing
         self.probe.authenticate().await?;
 
-        run_test!(self, auth);
+        run_test!(self, can_auth_as_known);
 
         Ok(())
     }
 
-    pub async fn exit(self) -> Result<Vec<Test>, Error> {
+    pub async fn exit(self) -> Result<(), Error> {
         self.probe.exit().await?;
-        Ok(self.results)
+        Ok(())
     }
 
-    async fn test_initial_prompt_for_auth(&mut self) -> Result<Outcome, Error> {
+    async fn test_prompts_for_auth_initially(&mut self) -> Result<Outcome, Error> {
         // Start with a quick listen. This will process any initial auth,
         // then it should timeout after 1 second.
         loop {
@@ -113,7 +92,7 @@ impl Runner {
         })
     }
 
-    async fn test_eose(&mut self) -> Result<Outcome, Error> {
+    async fn test_supports_eose(&mut self) -> Result<Outcome, Error> {
         // Move on to a very benign filter.
         let our_sub_id = SubscriptionId("fetch_by_filter".to_string());
         let mut filter = Filter::new();
@@ -154,7 +133,7 @@ impl Runner {
         Ok(outcome)
     }
 
-    async fn test_public_write(&mut self) -> Result<Outcome, Error> {
+    async fn test_public_can_write(&mut self) -> Result<Outcome, Error> {
         let private_key = PrivateKey::generate();
         let signer = KeySigner::from_private_key(private_key, "", 8)?;
         let pre_event = PreEvent {
@@ -190,7 +169,7 @@ impl Runner {
         Ok(outcome)
     }
 
-    async fn test_public_readback(&mut self) -> Result<Outcome, Error> {
+    async fn test_public_can_read_back(&mut self) -> Result<Outcome, Error> {
         match self.public_write_id {
             None => Ok(Outcome::Info(
                 "Couldn't write, so not reading back".to_owned(),
@@ -231,7 +210,11 @@ impl Runner {
         }
     }
 
-    async fn test_auth(&mut self) -> Result<Outcome, Error> {
+    async fn test_can_auth_as_unknown(&mut self) -> Result<Outcome, Error> {
+        Ok(Outcome::Untested)
+    }
+
+    async fn test_can_auth_as_known(&mut self) -> Result<Outcome, Error> {
         // Listen for any final messages first
         loop {
             match self.probe.wait_for_a_response().await {
@@ -275,15 +258,18 @@ impl Runner {
     async fn test_find_by_scrape(&mut self) -> Result<Outcome, Error> {
     async fn test_find_replaceable_event(&mut self) -> Result<Outcome, Error> {
     async fn test_find_parameterized_replaceable_event(&mut self) -> Result<Outcome, Error> {
+
     async fn test_delete_by_id_event_is_deleted(&mut self) -> Result<Outcome, Error> {
     async fn test_cannot_delete_by_id_events_of_others(&mut self) -> Result<Outcome, Error> {
     async fn test_resubmission_of_deleted_by_id_event_is_rejected(&mut self) -> Result<Outcome, Error> {
+
     async fn test_deleted_by_npnaddr_event_is_deleted(&mut self) -> Result<Outcome, Error> {
     async fn test_cannot_delete_by_npnaddr_events_of_others(&mut self) -> Result<Outcome, Error> {
     async fn test_resubmission_of_deleted_by_npnaddr_event_is_rejected(&mut self) -> Result<Outcome, Error> {
     async fn test_submission_of_any_older_deleted_by_npnaddr_event_is_rejected(&mut self) -> Result<Outcome, Error> {
     async fn test_submission_of_any_newer_deleted_by_npnaddr_event_is_accepted(&mut self) -> Result<Outcome, Error> {
     async fn test_deleted_by_npnaddr_doesnt_affect_newer_events(&mut self) -> Result<Outcome, Error> {
+
     async fn test_deleted_by_pnaddr_event_is_deleted(&mut self) -> Result<Outcome, Error> {
     async fn test_cannot_delete_by_pnaddr_events_of_others(&mut self) -> Result<Outcome, Error> {
     async fn test_resubmission_of_deleted_by_pnaddr_event_is_rejected(&mut self) -> Result<Outcome, Error> {
@@ -291,6 +277,7 @@ impl Runner {
     async fn test_submission_of_any_newer_deleted_by_pnaddr_event_is_accepted(&mut self) -> Result<Outcome, Error> {
     async fn test_deleted_by_pnaddr_doesnt_affect_newer_events(&mut self) -> Result<Outcome, Error> {
     async fn test_deleted_by_pnaddr_is_bound_by_d_tag(&mut self) -> Result<Outcome, Error> {
+
     async fn test_replaceable_event_removes_previous(&mut self) -> Result<Outcome, Error> {
     async fn test_parameterized_replaceable_event_removes_previous(&mut self) -> Result<Outcome, Error> {
     async fn test_naddr_is_deleted_asof(&mut self) -> Result<Outcome, Error> {

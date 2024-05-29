@@ -1,9 +1,11 @@
 mod error;
 mod probe;
+mod results;
 mod runner;
 
 use crate::error::Error;
 use crate::probe::Probe;
+use crate::results::{NUMTESTS, TESTNAMES, RESULTS};
 use crate::runner::Runner;
 use colorful::{Color, Colorful};
 use lazy_static::lazy_static;
@@ -33,11 +35,13 @@ async fn main() -> Result<(), Error> {
 
     runner.run().await?;
 
-    let results = runner.exit().await?;
+    runner.exit().await?;
 
     println!("\nRESULTS:");
-    for result in results.iter() {
-        println!("{}", result);
+    let results = &(*(*RESULTS).read().unwrap());
+    for i in 0..NUMTESTS {
+        let result = &results[i];
+        println!("{}: {}", TESTNAMES[i], result);
     }
 
     Ok(())
