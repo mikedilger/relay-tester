@@ -93,8 +93,21 @@ impl Probe {
         Ok(self.sender.send(command).await?)
     }
 
-    pub async fn post(&self, mut pre_event: PreEvent, signer: &dyn Signer) -> Result<Id, Error> {
-        pre_event.pubkey = signer.public_key();
+    pub async fn post(
+        &self,
+        created_at: Unixtime,
+        kind: EventKind,
+        tags: Vec<Tag>,
+        content: String,
+        signer: &dyn Signer,
+    ) -> Result<Id, Error> {
+        let pre_event = PreEvent {
+            pubkey: signer.public_key(),
+            created_at,
+            kind,
+            tags,
+            content,
+        };
         let event = signer.sign_event(pre_event)?;
         let event_id = event.id;
         self.send(Command::PostEvent(event)).await?;
