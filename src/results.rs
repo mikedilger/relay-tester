@@ -11,6 +11,7 @@ pub enum Outcome {
     Fail,
     Fail2(String),
     Info(String),
+    Value(usize),
 }
 
 impl fmt::Display for Outcome {
@@ -21,12 +22,13 @@ impl fmt::Display for Outcome {
             Outcome::Fail => write!(f, "{}", "FAIL".color(Color::Red3a)),
             Outcome::Fail2(s) => write!(f, "{} ({})", "FAIL".color(Color::Red3a), s),
             Outcome::Info(s) => write!(f, "{} ({})", "INFO".color(Color::DarkGoldenrod), s),
+            Outcome::Value(u) => write!(f, "{} ({})", "VALUE", u),
         }
     }
 }
 
-pub const NUMTESTS: usize = 61;
-pub const TESTNAMES: [&'static str; 61] = [
+pub const NUMTESTS: usize = 94;
+pub const TESTNAMES: [&'static str; 94] = [
     "nip11_provided",
     "claimed_support_for_nip1",
     "claimed_support_for_nip4",
@@ -40,6 +42,7 @@ pub const TESTNAMES: [&'static str; 61] = [
     "claimed_support_for_nip50",
     "claimed_support_for_nip59",
     "claimed_support_for_nip65",
+    "claimed_support_for_nip70",
     "claimed_support_for_nip94",
     "claimed_support_for_nip96",
     // Public permission checks
@@ -60,6 +63,13 @@ pub const TESTNAMES: [&'static str; 61] = [
     "replaceable_event_doesnt_remove_future",
     "parameterized_replaceable_event_removes_previous",
     "parameterized_replaceable_event_doesnt_remove_future",
+    "since_until_include_equals",
+    "limit_zero",
+    "event_always_gets_ok_reply",
+    "auth_always_gets_ok_reply",
+    "limit_works_across_multiple_filter_groups",
+    "serves_post_eose_events",
+    "no_timeout_while_subscribed",
     // NIP-04
     "nip4_dms_require_auth",
     // NIP-09
@@ -79,6 +89,7 @@ pub const TESTNAMES: [&'static str; 61] = [
     "resubmission_of_deleted_by_pnaddr",
     "resubmission_of_olderthan_deleted_by_pnaddr",
     "resubmission_of_newerthan_deleted_by_pnaddr",
+    "deleted_returns_ok_false",
     // NIP-26 - TBD
 
     // NIP-29 - TBD
@@ -105,10 +116,37 @@ pub const TESTNAMES: [&'static str; 61] = [
     "giftwraps_require_auth",
     // NIP-65 - TBD
 
+    // NIP-70 - TBD (protected event)
+
     // NIP-94 - TBD
 
     // NIP-96 - TBD
+    // other
     "large_contact_lists",
+    "preserves_json_field_order",
+    "preserves_nonstandard_json_fields",
+    "handles_event_kind_larger_than_16bit",
+    "handles_filter_kind_larger_than_16bit",
+    "handles_event_created_at_larger_than_64bit",
+    "handles_filter_created_at_larger_than_64bit",
+    "accepts_events_before_nostr_was_invented",
+    "accepts_negative_event_created_at",
+    "accepts_events_in_the_near_future",
+    "accepts_events_in_the_distant_future",
+    "accepts_negative_filter_created_at",
+    "accepts_filter_created_at_in_near_future",
+    "accepts_filter_created_at_in_distant_future",
+    "handles_all_json_escape_codes",
+    "handles_surrogate_pairs",
+    "verifies_signatures",
+    "accepts_invalid_utf8",
+    "accepts_null_characters",
+    "handles_filter_prefixes",
+    "keeps_ephemeral_events",
+    "max_subscriptions",
+    "allows_immediate_reconnect",
+    "idle_timeout_if_unsubscribed",
+    "handles_empty_tags",
 ];
 
 pub fn set_outcome_by_name(name: &'static str, outcome: Outcome) {
