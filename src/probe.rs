@@ -24,7 +24,7 @@ pub enum Command {
     Exit,
 }
 
-fn url_to_host_and_uri(url: &str) -> (String, Uri) {
+pub fn url_to_host_and_uri(url: &str) -> (String, Uri) {
     let uri: http::Uri = url.parse::<http::Uri>().expect("Could not parse url");
     let authority = uri.authority().expect("Has no hostname").as_str();
     let host = authority
@@ -53,7 +53,7 @@ pub enum AuthState {
 
 #[derive(Debug)]
 pub struct Probe {
-    relay_url: String,
+    pub relay_url: String,
     signer: Box<dyn Signer>,
     sender: Sender<Command>,
     receiver: Receiver<RelayMessage>,

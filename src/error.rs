@@ -11,6 +11,7 @@ pub enum Error {
     Join(tokio::task::JoinError),
     Json(serde_json::Error),
     NostrTypes(nostr_types::Error),
+    Reqwest(reqwest::Error),
     SendCommand(tokio::sync::mpsc::error::SendError<Command>),
     SendRelayMessage(tokio::sync::mpsc::error::SendError<RelayMessage>),
     Timeout(tokio::time::error::Elapsed),
@@ -26,6 +27,7 @@ impl fmt::Display for Error {
             Error::Join(e) => write!(f, "Tokio join: {e}"),
             Error::Json(e) => write!(f, "JSON: {e}"),
             Error::NostrTypes(e) => write!(f, "nostr-types: {e}"),
+            Error::Reqwest(e) => write!(f, "Http: {e}"),
             Error::SendCommand(e) => write!(f, "Send Command: {e}"),
             Error::SendRelayMessage(e) => write!(f, "Send Relay Message: {e}"),
             Error::Timeout(e) => write!(f, "Timeout: {e}"),
@@ -41,6 +43,7 @@ impl StdError for Error {
             Error::Join(inner) => Some(inner),
             Error::Json(inner) => Some(inner),
             Error::NostrTypes(inner) => Some(inner),
+            Error::Reqwest(inner) => Some(inner),
             Error::SendCommand(inner) => Some(inner),
             Error::SendRelayMessage(inner) => Some(inner),
             Error::Timeout(inner) => Some(inner),
@@ -71,6 +74,12 @@ impl From<serde_json::Error> for Error {
 impl From<nostr_types::Error> for Error {
     fn from(e: nostr_types::Error) -> Error {
         Error::NostrTypes(e)
+    }
+}
+
+impl From<reqwest::Error> for Error {
+    fn from(e: reqwest::Error) -> Error {
+        Error::Reqwest(e)
     }
 }
 

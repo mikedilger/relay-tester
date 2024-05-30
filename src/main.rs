@@ -5,7 +5,7 @@ mod runner;
 
 use crate::error::Error;
 use crate::probe::Probe;
-use crate::results::{NUMTESTS, TESTNAMES, RESULTS};
+use crate::results::{NUMTESTS, RESULTS, TESTNAMES};
 use crate::runner::Runner;
 use colorful::{Color, Colorful};
 use lazy_static::lazy_static;

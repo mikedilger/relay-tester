@@ -1,7 +1,7 @@
 use colorful::{Color, Colorful};
 use lazy_static::lazy_static;
-use std::sync::RwLock;
 use std::fmt;
+use std::sync::RwLock;
 
 #[derive(Debug, Default, Clone)]
 pub enum Outcome {
@@ -25,8 +25,8 @@ impl fmt::Display for Outcome {
     }
 }
 
-pub const NUMTESTS: usize = 60;
-pub const TESTNAMES: [&'static str; 60] = [
+pub const NUMTESTS: usize = 61;
+pub const TESTNAMES: [&'static str; 61] = [
     "nip11_provided",
     "claimed_support_for_nip1",
     "claimed_support_for_nip4",
@@ -42,11 +42,9 @@ pub const TESTNAMES: [&'static str; 60] = [
     "claimed_support_for_nip65",
     "claimed_support_for_nip94",
     "claimed_support_for_nip96",
-
     // Public permission checks
     "public_can_write",
     "public_can_read_back",
-
     // NIP-01
     "supports_eose",
     "find_by_id",
@@ -62,10 +60,8 @@ pub const TESTNAMES: [&'static str; 60] = [
     "replaceable_event_doesnt_remove_future",
     "parameterized_replaceable_event_removes_previous",
     "parameterized_replaceable_event_doesnt_remove_future",
-
     // NIP-04
     "nip4_dms_require_auth",
-
     // NIP-09
     "delete_by_id",
     "delete_by_id_of_others",
@@ -83,7 +79,6 @@ pub const TESTNAMES: [&'static str; 60] = [
     "resubmission_of_deleted_by_pnaddr",
     "resubmission_of_olderthan_deleted_by_pnaddr",
     "resubmission_of_newerthan_deleted_by_pnaddr",
-
     // NIP-26 - TBD
 
     // NIP-29 - TBD
@@ -102,20 +97,24 @@ pub const TESTNAMES: [&'static str; 60] = [
     "known_can_readback_own",
     "known_can_write_other",
     "known_can_readback_other",
-
     // NIP-45 - TBD
 
     // NIP-50 - TBD
 
     // NIP-59
     "giftwraps_require_auth",
-
     // NIP-65 - TBD
 
     // NIP-94 - TBD
 
     // NIP-96 - TBD
+    "large_contact_lists",
 ];
+
+pub fn set_outcome_by_name(name: &'static str, outcome: Outcome) {
+    let no = test_no(name);
+    (*(*RESULTS).write().unwrap())[no] = outcome;
+}
 
 pub fn test_no(name: &'static str) -> usize {
     for (i, thisname) in TESTNAMES.iter().enumerate() {
