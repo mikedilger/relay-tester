@@ -18,9 +18,9 @@ impl fmt::Display for Outcome {
         match self {
             Outcome::Untested => write!(f, "{}", "UNTESTED".color(Color::Grey50)),
             Outcome::Pass => write!(f, "{}", "PASS".color(Color::Green)),
-            Outcome::Fail => write!(f, "{}", "FAIL".color(Color::Red)),
-            Outcome::Fail2(s) => write!(f, "{} ({})", "FAIL".color(Color::Red), s),
-            Outcome::Info(s) => write!(f, "{} ({})", "INFO".color(Color::Gold1), s),
+            Outcome::Fail => write!(f, "{}", "FAIL".color(Color::Red3a)),
+            Outcome::Fail2(s) => write!(f, "{} ({})", "FAIL".color(Color::Red3a), s),
+            Outcome::Info(s) => write!(f, "{} ({})", "INFO".color(Color::DarkGoldenrod), s),
         }
     }
 }
