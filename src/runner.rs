@@ -2,32 +2,80 @@ use crate::error::Error;
 use crate::probe::{AuthState, Command, Probe};
 use crate::results::{set_outcome_by_name, Outcome};
 use nostr_types::{
-    EventKind, Filter, Id, IdHex, KeySigner, PreEvent, PrivateKey, RelayMessage, Signer,
+    EventKind, Filter, IdHex, KeySigner, PreEvent, PrivateKey, RelayMessage, Signer,
     SubscriptionId, Tag, Unixtime,
 };
 use serde_json::Value;
+use std::time::Duration;
 
-pub struct Runner(Probe);
+pub struct Runner {
+    probe: Probe,
+    stranger1: KeySigner,
+    //stranger2: KeySigner,
+    registered_user: KeySigner,
+}
 
 impl Runner {
-    pub fn new(probe: Probe) -> Runner {
-        Runner(probe)
+    pub fn new(relay_url: String, private_key: PrivateKey) -> Runner {
+        let registered_user = KeySigner::from_private_key(private_key, "", 8).unwrap();
+
+        let stranger1 = {
+            let private_key = PrivateKey::generate();
+            KeySigner::from_private_key(private_key, "", 8).unwrap()
+        };
+
+        /*let stranger2 = {
+            let private_key = PrivateKey::generate();
+            KeySigner::from_private_key(private_key, "", 8).unwrap()
+        };*/
+
+        let probe = Probe::new(relay_url);
+
+        Runner {
+            probe,
+            registered_user,
+            stranger1,
+            //stranger2,
+        }
     }
 
     pub async fn run(&mut self) -> Result<(), Error> {
+        // Tests that run before authenticating
         self.test_nip11().await;
         self.test_prompts_for_auth_initially().await;
         self.test_supports_eose().await;
         self.test_public_access().await;
 
-        // Authenticate if we can before continuing
-        //self.0.authenticate().await?;
+        // Authenticate as a stranger
+        if self.probe.authenticate(&self.stranger1).await.is_err() {
+            eprintln!("Cannot authenticate. Cannot continue testing.");
+            return Ok(());
+        }
+
+        // Tests that run as a stranger
+        // TBD
+
+        // Authenticate as the configured subscribed user
+        self.probe.reconnect(Duration::new(1, 0)).await?;
+        let _ = self.probe.wait_for_a_response().await;
+        if self
+            .probe
+            .authenticate(&self.registered_user)
+            .await
+            .is_err()
+        {
+            eprintln!("Cannot authenticate. Cannot continue testing.");
+            return Ok(());
+        }
+
+        // Tests that run as the registered user
+        // TBD
 
         Ok(())
     }
 
     pub async fn exit(self) -> Result<(), Error> {
-        self.0.exit().await?;
+        self.probe.exit().await?;
         Ok(())
     }
 
@@ -131,7 +179,7 @@ impl Runner {
         use reqwest::Client;
         use std::time::Duration;
 
-        let (host, uri) = crate::probe::url_to_host_and_uri(&self.0.relay_url);
+        let (host, uri) = crate::probe::url_to_host_and_uri(&self.probe.relay_url);
         let scheme = match uri.scheme() {
             Some(refscheme) => match refscheme.as_str() {
                 "wss" => "https",
@@ -161,7 +209,7 @@ impl Runner {
     async fn test_prompts_for_auth_initially(&mut self) {
         let outcome;
         loop {
-            match self.0.wait_for_a_response().await {
+            match self.probe.wait_for_a_response().await {
                 Ok(_) => {
                     // AUTH would have been captured by probe, so this is some
                     // message other than AUTH that we didn't expect.
@@ -171,7 +219,7 @@ impl Runner {
                 }
                 Err(Error::Timeout(_)) => {
                     // Expected timeout.
-                    outcome = match self.0.auth_state() {
+                    outcome = match self.probe.auth_state() {
                         AuthState::NotYetRequested => Outcome::Fail,
                         _ => Outcome::Pass,
                     };
@@ -201,14 +249,14 @@ impl Runner {
             filter
         };
 
-        self.0
+        self.probe
             .send(Command::FetchEvents(our_sub_id.clone(), vec![filter]))
             .await
             .unwrap();
 
         let outcome;
         loop {
-            let rm = match self.0.wait_for_a_response().await {
+            let rm = match self.probe.wait_for_a_response().await {
                 Ok(rm) => rm,
                 Err(Error::Timeout(_)) => {
                     outcome = Outcome::Fail;
@@ -240,25 +288,19 @@ impl Runner {
     }
 
     async fn test_public_access(&mut self) {
-        let private_key = PrivateKey::generate();
-        let signer = KeySigner::from_private_key(private_key, "", 8).unwrap();
         let pre_event = PreEvent {
-            pubkey: signer.public_key(),
+            pubkey: self.stranger1.public_key(),
             created_at: Unixtime::now().unwrap(),
             kind: EventKind::TextNote,
             tags: vec![Tag::new(&["test"])],
             content: "This is a test from a random keypair. Feel free to delete.".to_string(),
         };
 
-        let event_id = self
-            .0
-            .post(pre_event, Some(Box::new(signer)))
-            .await
-            .unwrap();
+        let event_id = self.probe.post(pre_event, &self.stranger1).await.unwrap();
 
         // Wait for an Ok response
-        let outcome = match self.0.wait_for_ok().await {
-            Ok((id, ok, reason)) => {
+        let outcome = match self.probe.wait_for_ok().await {
+            Ok((id, ok, _reason)) => {
                 if id == event_id {
                     if ok {
                         Outcome::Pass
@@ -283,13 +325,13 @@ impl Runner {
             let mut filter = Filter::new();
             filter.add_id(&idhex);
             filter.add_event_kind(EventKind::TextNote);
-            self.0
+            self.probe
                 .send(Command::FetchEvents(our_sub_id.clone(), vec![filter]))
                 .await
                 .unwrap();
 
             // Wait for events
-            let outcome = match self.0.wait_for_events("public_readback").await {
+            let outcome = match self.probe.wait_for_events("public_readback").await {
                 Ok(events) => {
                     if events.len() > 0 {
                         if events[0].id == event_id {
@@ -322,7 +364,7 @@ impl Runner {
         async fn test_can_auth_as_known(&mut self) -> Result<Outcome, Error> {
             // Listen for any final messages first
             loop {
-                match self.0.wait_for_a_response().await {
+                match self.probe.wait_for_a_response().await {
                     Ok(_) => {
                         // We didn't expect that.
                         continue;
@@ -338,7 +380,7 @@ impl Runner {
                 }
             }
 
-            Ok(match self.0.auth_state() {
+            Ok(match self.probe.auth_state() {
                 AuthState::NotYetRequested => Outcome::Fail,
                 AuthState::Challenged(_) => {
                     Outcome::Fail2("Challenged but we failed to AUTH back".to_string())

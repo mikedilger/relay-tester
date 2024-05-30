@@ -4,12 +4,11 @@ mod results;
 mod runner;
 
 use crate::error::Error;
-use crate::probe::Probe;
 use crate::results::{NUMTESTS, RESULTS, TESTNAMES};
 use crate::runner::Runner;
 use colorful::{Color, Colorful};
 use lazy_static::lazy_static;
-use nostr_types::{KeySigner, PrivateKey};
+use nostr_types::PrivateKey;
 use std::env;
 
 #[tokio::main]
@@ -27,11 +26,7 @@ async fn main() -> Result<(), Error> {
         None => return usage(),
     };
 
-    let key_signer = KeySigner::from_private_key(private_key, "", 8)?;
-
-    let probe = Probe::new(relay_url, Box::new(key_signer));
-
-    let mut runner = Runner::new(probe);
+    let mut runner = Runner::new(relay_url, private_key);
 
     runner.run().await?;
 

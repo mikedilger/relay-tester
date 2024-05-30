@@ -11,7 +11,7 @@ pub enum Outcome {
     Fail,
     Fail2(String),
     Info(String),
-    Value(usize),
+    //Value(usize),
 }
 
 impl fmt::Display for Outcome {
@@ -22,15 +22,14 @@ impl fmt::Display for Outcome {
             Outcome::Fail => write!(f, "{}", "FAIL".color(Color::Red3a)),
             Outcome::Fail2(s) => write!(f, "{} ({})", "FAIL".color(Color::Red3a), s),
             Outcome::Info(s) => write!(f, "{} ({})", "INFO".color(Color::DarkGoldenrod), s),
-            Outcome::Value(u) => write!(f, "{} ({})", "VALUE", u),
+            //Outcome::Value(u) => write!(f, "{} ({})", "VALUE", u),
         }
     }
 }
 
-pub const NUMTESTS: usize = 94;
-pub const TESTNAMES: [&'static str; 94] = [
+pub const NUMTESTS: usize = 93;
+pub const TESTNAMES: [&'static str; 93] = [
     "nip11_provided",
-    "claimed_support_for_nip1",
     "claimed_support_for_nip4",
     "claimed_support_for_nip9",
     "claimed_support_for_nip11",

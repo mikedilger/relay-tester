@@ -6,8 +6,8 @@ use futures_util::stream::FusedStream;
 use futures_util::{SinkExt, StreamExt};
 use http::Uri;
 use nostr_types::{
-    ClientMessage, Event, EventKind, Filter, Id, PreEvent, PublicKey, RelayMessage, Signer,
-    SubscriptionId, Tag, Unixtime,
+    ClientMessage, Event, EventKind, Filter, Id, PreEvent, RelayMessage, Signer, SubscriptionId,
+    Tag, Unixtime,
 };
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -48,13 +48,11 @@ pub enum AuthState {
     InProgress(Id),
     Success,
     Failure(String),
-    Duplicate,
 }
 
 #[derive(Debug)]
 pub struct Probe {
     pub relay_url: String,
-    signer: Box<dyn Signer>,
     sender: Sender<Command>,
     receiver: Receiver<RelayMessage>,
     join_handle: Option<JoinHandle<()>>,
@@ -63,7 +61,7 @@ pub struct Probe {
 }
 
 impl Probe {
-    pub fn new(relay_url: String, signer: Box<dyn Signer>) -> Probe {
+    pub fn new(relay_url: String) -> Probe {
         let (to_probe, from_main) = tokio::sync::mpsc::channel::<Command>(100);
         let (to_main, from_probe) = tokio::sync::mpsc::channel::<RelayMessage>(100);
         let relay_url_thread = relay_url.clone();
@@ -79,17 +77,12 @@ impl Probe {
 
         Probe {
             relay_url,
-            signer,
             sender: to_probe,
             receiver: from_probe,
             join_handle: Some(join_handle),
             auth_state: AuthState::NotYetRequested,
             dup_auth: false,
         }
-    }
-
-    pub fn public_key(&self) -> PublicKey {
-        self.signer.public_key()
     }
 
     pub fn auth_state(&self) -> AuthState {
@@ -100,19 +93,9 @@ impl Probe {
         Ok(self.sender.send(command).await?)
     }
 
-    pub async fn post(
-        &self,
-        mut pre_event: PreEvent,
-        signer: Option<Box<dyn Signer>>,
-    ) -> Result<Id, Error> {
-        let event = {
-            if let Some(s) = signer {
-                s.sign_event(pre_event)?
-            } else {
-                pre_event.pubkey = self.signer.public_key();
-                self.signer.sign_event(pre_event)?
-            }
-        };
+    pub async fn post(&self, mut pre_event: PreEvent, signer: &dyn Signer) -> Result<Id, Error> {
+        pre_event.pubkey = signer.public_key();
+        let event = signer.sign_event(pre_event)?;
         let event_id = event.id;
         self.send(Command::PostEvent(event)).await?;
         Ok(event_id)
@@ -185,10 +168,10 @@ impl Probe {
 
     /// This authenticates with a challenge that the relay previously presented,
     /// if in that state.
-    pub async fn authenticate(&mut self) -> Result<(), Error> {
+    pub async fn authenticate(&mut self, signer: &dyn Signer) -> Result<(), Error> {
         if let AuthState::Challenged(ref challenge) = self.auth_state {
             let pre_event = PreEvent {
-                pubkey: self.signer.public_key(),
+                pubkey: signer.public_key(),
                 created_at: Unixtime::now().unwrap(),
                 kind: EventKind::Auth,
                 tags: vec![
@@ -198,13 +181,14 @@ impl Probe {
                 content: "".to_string(),
             };
 
-            let event = self.signer.sign_event(pre_event)?;
+            let event = signer.sign_event(pre_event)?;
 
             self.auth_state = AuthState::InProgress(event.id);
             self.sender.send(Command::Auth(event)).await?;
+            Ok(())
+        } else {
+            Err(Error::NotChallenged)
         }
-
-        Ok(())
     }
 
     // internally processes Ok messages prior to returning them, just in case
