@@ -189,6 +189,8 @@ impl Runner {
             None => panic!("Relay URL has no scheme."),
         };
 
+        let url = format!("{}://{}{}", scheme, host, uri.path());
+
         let client = Client::builder()
             .redirect(Policy::none())
             .connect_timeout(Duration::from_secs(60))
@@ -196,7 +198,7 @@ impl Runner {
             .connection_verbose(true)
             .build()?;
         let response = client
-            .get(format!("{}://{}", scheme, host))
+            .get(url)
             .header("Host", host)
             .header("Accept", "application/nostr+json")
             .send()
