@@ -250,7 +250,11 @@ impl Runner {
             content: "This is a test from a random keypair. Feel free to delete.".to_string(),
         };
 
-        let event_id = self.0.post(pre_event, Some(Box::new(signer))).await.unwrap();
+        let event_id = self
+            .0
+            .post(pre_event, Some(Box::new(signer)))
+            .await
+            .unwrap();
 
         // Wait for an Ok response
         let outcome = match self.0.wait_for_ok().await {
@@ -264,7 +268,7 @@ impl Runner {
                 } else {
                     Outcome::Fail2("Responded to EVENT with OK with a different id".to_owned())
                 }
-            },
+            }
             Err(Error::Timeout(_)) => {
                 Outcome::Fail2("No response to an EVENT submission".to_owned())
             }
@@ -281,7 +285,8 @@ impl Runner {
             filter.add_event_kind(EventKind::TextNote);
             self.0
                 .send(Command::FetchEvents(our_sub_id.clone(), vec![filter]))
-                .await.unwrap();
+                .await
+                .unwrap();
 
             // Wait for events
             let outcome = match self.0.wait_for_events("public_readback").await {
@@ -294,8 +299,7 @@ impl Runner {
                         }
                     } else {
                         Outcome::Fail2(
-                            "Failed to retrieve event we just successfully submitted."
-                                .to_owned(),
+                            "Failed to retrieve event we just successfully submitted.".to_owned(),
                         )
                     }
                 }
