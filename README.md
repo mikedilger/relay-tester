@@ -4,7 +4,7 @@ A relay test suite for nostr relay implementations
 
 ## How to use
 
-WARNING: This package is not meant to test a relay implementation, not a live relay:
+WARNING: This package is meant to test a relay implementation, not a live relay:
 
 - It will generate a bunch of events that are generally useless outside of the test.
 - It might crash some relay implementations.
