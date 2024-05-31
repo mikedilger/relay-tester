@@ -33,8 +33,8 @@ impl fmt::Display for Outcome {
     }
 }
 
-pub const NUMTESTS: usize = 93;
-pub const TESTNAMES: [&str; 93] = [
+pub const NUMTESTS: usize = 97;
+pub const TESTNAMES: [&str; 97] = [
     "nip11_provided",
     "claimed_support_for_nip4",
     "claimed_support_for_nip9",
@@ -139,11 +139,12 @@ pub const TESTNAMES: [&str; 93] = [
     "accepts_events_from_before_nostr",
     "accepts_events_from_before_2000",
     "accepts_events_from_1970",
-    //"accepts_events_from_before_1970",
+    "accepts_events_from_before_1970",
     "accepts_events_one_year_into_the_future",
     "accepts_events_in_the_distant_future",
-    //"accepts_events_with_created_at_larger_than_64bit",
-    //"accepts_events_with_exponential_created_at_format",
+    "accepts_events_with_created_at_greater_than_signed32bit",
+    "accepts_events_with_created_at_greater_than_unsigned32bit",
+    "accepts_events_with_created_at_in_scientific_notation",
     "accepts_negative_filter_created_at",
     "handles_all_json_escape_codes",
     "handles_surrogate_pairs",

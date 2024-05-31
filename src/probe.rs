@@ -20,6 +20,7 @@ use tungstenite::Message;
 pub enum Command {
     Auth(Event),
     PostEvent(Event),
+    PostRawEvent(String),
     FetchEvents(SubscriptionId, Vec<Filter>),
     Exit,
 }
@@ -117,6 +118,10 @@ impl Probe {
         let event_id = event.id;
         self.send(Command::PostEvent(event)).await;
         event_id
+    }
+
+    pub async fn post_raw_event(&self, event: &str) {
+        self.send(Command::PostRawEvent(event.to_owned())).await;
     }
 
     pub async fn wait_for_ok(&mut self, id: Id) -> Result<(bool, String), Error> {
@@ -329,6 +334,11 @@ impl ProbeInner {
                         Some(Command::PostEvent(event)) => {
                             let client_message = ClientMessage::Event(Box::new(event));
                             let wire = serde_json::to_string(&client_message)?;
+                            let msg = Message::Text(wire);
+                            self.send(&mut websocket, msg).await;
+                        },
+                        Some(Command::PostRawEvent(event)) => {
+                            let wire = format!("[\"EVENT\",{}]", event);
                             let msg = Message::Text(wire);
                             self.send(&mut websocket, msg).await;
                         },

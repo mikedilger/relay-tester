@@ -1,7 +1,8 @@
 use crate::error::Error;
 use crate::probe::Probe;
 use crate::results::{set_outcome_by_name, Outcome};
-use nostr_types::{KeySigner, PreEvent, PrivateKey};
+use nostr_types::{Id, KeySigner, PreEvent, PrivateKey, Signer};
+use secp256k1::hashes::Hash;
 use std::time::Duration;
 
 mod tests;
@@ -132,6 +133,62 @@ impl Runner {
         let json = response.text().await?;
         let value: serde_json::Value = serde_json::from_str(&json)?;
         Ok(value)
+    }
+
+    async fn create_raw_event(
+        created_at: &str,
+        kind: &str,
+        tags: &str,
+        content: &str,
+        signer: &dyn Signer,
+    ) -> (Id, String) {
+        let serial_for_sig = format!(
+            "[0,\"{}\",{},{},{},\"{}\"]",
+            signer.public_key().as_hex_string(),
+            created_at,
+            kind,
+            tags,
+            content
+        );
+        let hash = secp256k1::hashes::sha256::Hash::hash(serial_for_sig.as_bytes());
+        let id: [u8; 32] = hash.to_byte_array();
+        let id = Id(id);
+        let signature = signer.sign_id(id).unwrap();
+
+        let raw_event = format!(
+            r##"{{"id":"{}","pubkey":"{}","created_at":{},"kind":{},"tags":{},"content":"{}","sig":"{}"}}"##,
+            id.as_hex_string(),
+            signer.public_key().as_hex_string(),
+            created_at,
+            kind,
+            tags,
+            content,
+            signature.as_hex_string()
+        );
+
+        (id, raw_event)
+    }
+
+    async fn post_raw_event(
+        &mut self,
+        raw_event: &str,
+        raw_event_id: Id,
+        outcome_name: &'static str,
+    ) {
+        self.probe.post_raw_event(raw_event).await;
+        let (ok, reason) = match self.probe.wait_for_ok(raw_event_id).await {
+            Ok(data) => data,
+            Err(e) => {
+                set_outcome_by_name(outcome_name, Outcome::Fail2(format!("{}", e)));
+                return;
+            }
+        };
+        let outcome = if ok {
+            Outcome::Yes
+        } else {
+            Outcome::No2(reason)
+        };
+        set_outcome_by_name(outcome_name, outcome);
     }
 
     async fn post_event_as_registered_user(

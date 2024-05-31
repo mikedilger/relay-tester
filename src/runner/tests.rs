@@ -305,8 +305,16 @@ impl Runner {
             .await;
 
         // 1969 (negative date)
-        // set_outcome_by_name("accepts_events_from_before_1970", outcome);
-        // We would have to construct the JSON manually, nostr-types doesn't handle this
+        let (id, raw_event) = Self::create_raw_event(
+            "-200",
+            "1",
+            "[]",
+            "Testing created_at variations",
+            &self.registered_user,
+        )
+        .await;
+        self.post_raw_event(&raw_event, id, "accepts_events_from_before_1970")
+            .await;
 
         // 1 year hence
         pre_event.created_at = Unixtime::now().unwrap().add(Duration::new(86400 * 365, 0));
@@ -318,9 +326,53 @@ impl Runner {
         self.post_event_as_registered_user(&pre_event, "accepts_events_in_the_distant_future")
             .await;
 
-        // gigantic date
-        // set_outcome_by_name("accepts_events_with_created_at_larger_than_64bit", outcome);
-        // We would have to construct the JSON manually, nostr-types doesn't handle this
+        // created_at greater than signed 32 bit
+        let (id, raw_event) = Self::create_raw_event(
+            "2147483649", // 2^31 + 1
+            "1",
+            "[]",
+            "Testing created_at variations",
+            &self.registered_user,
+        )
+        .await;
+        self.post_raw_event(
+            &raw_event,
+            id,
+            "accepts_events_with_created_at_greater_than_signed32bit",
+        )
+        .await;
+
+        // created_at greater than unsigned 32 bit
+        let (id, raw_event) = Self::create_raw_event(
+            "4294967297", // 2^32 + 1
+            "1",
+            "[]",
+            "Testing created_at variations",
+            &self.registered_user,
+        )
+        .await;
+        self.post_raw_event(
+            &raw_event,
+            id,
+            "accepts_events_with_created_at_greater_than_unsigned32bit",
+        )
+        .await;
+
+        // created_at greater than unsigned 32 bit
+        let (id, raw_event) = Self::create_raw_event(
+            "1e+10",
+            "1",
+            "[]",
+            "Testing created_at variations",
+            &self.registered_user,
+        )
+        .await;
+        self.post_raw_event(
+            &raw_event,
+            id,
+            "accepts_events_with_created_at_in_scientific_notation",
+        )
+        .await;
 
         // date with exponential format
         // set_outcome_by_name("accepts_events_with_exponential_created_at_format", outcome);
