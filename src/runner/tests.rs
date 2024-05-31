@@ -7,7 +7,7 @@ use nostr_types::{
     Unixtime,
 };
 use serde_json::Value;
-use std::ops::Sub;
+use std::ops::{Add, Sub};
 use std::time::Duration;
 
 impl Runner {
@@ -274,40 +274,57 @@ impl Runner {
 
         // 1 week ago
         pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 7, 0));
-        let event_id = self
-            .probe
-            .post_preevent(&pre_event, &self.registered_user)
+        self.post_event_as_registered_user(&pre_event, "accepts_events_one_week_old")
             .await;
-        let (ok, reason) = match self.probe.wait_for_ok(event_id).await {
-            Ok(data) => data,
-            Err(_) => return Err(Error::CannotPost),
-        };
-        if ok {
-            set_outcome_by_name("accepts_events_one_week_old", Outcome::Yes);
-        } else {
-            set_outcome_by_name("accepts_events_one_week_old", Outcome::No2(reason));
-        }
 
         // 1 month ago
-        // 1 year ago
-        // 2015
-        // 2000
-        // 1970
-        // 1969 (negative date)
-        // 1 year hence
-        // gigantic date
-        // date with exponential format
+        pre_event.created_at = Unixtime::now()
+            .unwrap()
+            .sub(Duration::new(86400 * 7 * 4, 0));
+        self.post_event_as_registered_user(&pre_event, "accepts_events_one_month_old")
+            .await;
 
-        //set_outcome_by_name("accepts_events_one_month_old", outcome);
-        //set_outcome_by_name("accepts_events_one_year_old", outcome);
-        //set_outcome_by_name("accepts_events_from_before_nostr", outcome);
-        //set_outcome_by_name("accepts_events_from_before_2000", outcome);
-        //set_outcome_by_name("accepts_events_from_1970", outcome);
-        //set_outcome_by_name("accepts_events_from_before_1970", outcome);
-        //set_outcome_by_name("accepts_events_in_one_year_into_the_future", outcome);
-        //set_outcome_by_name("accepts_events_in_the_distant_future", outcome);
-        //set_outcome_by_name("accepts_events_with_created_at_larger_than_64bit", outcome);
-        //set_outcome_by_name("accepts_events_with_exponential_created_at_format", outcome);
+        // 1 year ago
+        pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 365, 0));
+        self.post_event_as_registered_user(&pre_event, "accepts_events_one_year_old")
+            .await;
+
+        // 2015
+        pre_event.created_at = Unixtime(1420070461); // Thursday, January 1, 2015 12:01:01 AM GMT
+        self.post_event_as_registered_user(&pre_event, "accepts_events_from_before_nostr")
+            .await;
+
+        // 1999
+        pre_event.created_at = Unixtime(915148861); // Friday, January 1, 1999 12:01:01 AM
+        self.post_event_as_registered_user(&pre_event, "accepts_events_from_before_2000")
+            .await;
+
+        // 1970
+        pre_event.created_at = Unixtime(0); // Thursday, January 1, 1970 12:00:00 AM
+        self.post_event_as_registered_user(&pre_event, "accepts_events_from_1970")
+            .await;
+
+        // 1969 (negative date)
+        // set_outcome_by_name("accepts_events_from_before_1970", outcome);
+        // We would have to construct the JSON manually, nostr-types doesn't handle this
+
+        // 1 year hence
+        pre_event.created_at = Unixtime::now().unwrap().add(Duration::new(86400 * 365, 0));
+        self.post_event_as_registered_user(&pre_event, "accepts_events_one_year_into_the_future")
+            .await;
+
+        // distant future
+        pre_event.created_at = Unixtime(i64::MAX);
+        self.post_event_as_registered_user(&pre_event, "accepts_events_in_the_distant_future")
+            .await;
+
+        // gigantic date
+        // set_outcome_by_name("accepts_events_with_created_at_larger_than_64bit", outcome);
+        // We would have to construct the JSON manually, nostr-types doesn't handle this
+
+        // date with exponential format
+        // set_outcome_by_name("accepts_events_with_exponential_created_at_format", outcome);
+        // We would have to construct the JSON manually, nostr-types doesn't handle this
 
         Ok(())
     }

@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::probe::Probe;
-use nostr_types::{KeySigner, PrivateKey};
+use crate::results::{set_outcome_by_name, Outcome};
+use nostr_types::{KeySigner, PreEvent, PrivateKey};
 use std::time::Duration;
 
 mod tests;
@@ -66,6 +67,7 @@ impl Runner {
         }
 
         // Authenticate as a stranger
+        // FIXME: wait first
         if self.probe.authenticate(&self.stranger1).await.is_err() {
             eprintln!("Cannot authenticate. Cannot continue testing.");
             return Ok(());
@@ -130,5 +132,29 @@ impl Runner {
         let json = response.text().await?;
         let value: serde_json::Value = serde_json::from_str(&json)?;
         Ok(value)
+    }
+
+    async fn post_event_as_registered_user(
+        &mut self,
+        pre_event: &PreEvent,
+        outcome_name: &'static str,
+    ) {
+        let event_id = self
+            .probe
+            .post_preevent(pre_event, &self.registered_user)
+            .await;
+        let (ok, reason) = match self.probe.wait_for_ok(event_id).await {
+            Ok(data) => data,
+            Err(e) => {
+                set_outcome_by_name(outcome_name, Outcome::Fail2(format!("{}", e)));
+                return;
+            }
+        };
+        let outcome = if ok {
+            Outcome::Yes
+        } else {
+            Outcome::No2(reason)
+        };
+        set_outcome_by_name(outcome_name, outcome);
     }
 }
