@@ -8,6 +8,9 @@ pub enum Outcome {
     #[default]
     Untested,
     Pass,
+    Yes,
+    //No,
+    No2(String),
     Fail,
     Fail2(String),
     Info(String),
@@ -19,6 +22,9 @@ impl fmt::Display for Outcome {
         match self {
             Outcome::Untested => write!(f, "{}", "UNTESTED".color(Color::Grey50)),
             Outcome::Pass => write!(f, "{}", "PASS".color(Color::Green)),
+            Outcome::Yes => write!(f, "YES"),
+            //Outcome::No => write!(f, "NO"),
+            Outcome::No2(s) => write!(f, "NO ({})", s),
             Outcome::Fail => write!(f, "{}", "FAIL".color(Color::Red3a)),
             Outcome::Fail2(s) => write!(f, "{} ({})", "FAIL".color(Color::Red3a), s),
             Outcome::Info(s) => write!(f, "{} ({})", "INFO".color(Color::DarkGoldenrod), s),
@@ -27,8 +33,8 @@ impl fmt::Display for Outcome {
     }
 }
 
-pub const NUMTESTS: usize = 93;
-pub const TESTNAMES: [&'static str; 93] = [
+pub const NUMTESTS: usize = 96;
+pub const TESTNAMES: [&str; 96] = [
     "nip11_provided",
     "claimed_support_for_nip4",
     "claimed_support_for_nip9",
@@ -126,15 +132,19 @@ pub const TESTNAMES: [&'static str; 93] = [
     "preserves_nonstandard_json_fields",
     "handles_event_kind_larger_than_16bit",
     "handles_filter_kind_larger_than_16bit",
-    "handles_event_created_at_larger_than_64bit",
-    "handles_filter_created_at_larger_than_64bit",
-    "accepts_events_before_nostr_was_invented",
-    "accepts_negative_event_created_at",
-    "accepts_events_in_the_near_future",
+    // created_at limits
+    "accepts_events_one_week_old",
+    "accepts_events_one_month_old",
+    "accepts_events_one_year_old",
+    "accepts_events_from_before_nostr",
+    "accepts_events_from_before_2000",
+    "accepts_events_from_1970",
+    "accepts_events_from_before_1970",
+    "accepts_events_in_one_year_into_the_future",
     "accepts_events_in_the_distant_future",
+    "accepts_events_with_created_at_larger_than_64bit",
+    "accepts_events_with_exponential_created_at_format",
     "accepts_negative_filter_created_at",
-    "accepts_filter_created_at_in_near_future",
-    "accepts_filter_created_at_in_distant_future",
     "handles_all_json_escape_codes",
     "handles_surrogate_pairs",
     "verifies_signatures",

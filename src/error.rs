@@ -5,8 +5,9 @@ use std::fmt;
 
 #[derive(Debug)]
 pub enum Error {
-    General(String),
+    CannotPost,
     ChannelIsClosed,
+    General(String),
     Http(http::Error),
     Join(tokio::task::JoinError),
     Json(serde_json::Error),
@@ -22,8 +23,9 @@ pub enum Error {
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
-            Error::General(s) => write!(f, "General: {s}"),
+            Error::CannotPost => write!(f, "Cannot post benign event as registered user"),
             Error::ChannelIsClosed => write!(f, "Channel is closed"),
+            Error::General(s) => write!(f, "General: {s}"),
             Error::Http(e) => write!(f, "Http: {e}"),
             Error::Join(e) => write!(f, "Tokio join: {e}"),
             Error::Json(e) => write!(f, "JSON: {e}"),

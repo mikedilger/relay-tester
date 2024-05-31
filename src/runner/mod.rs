@@ -57,7 +57,9 @@ impl Runner {
             }
 
             // Inject events
-            // TBD
+            if let Err(e) = self.test_created_at_events().await {
+                eprintln!("{}", e);
+            }
 
             // Disconnect and reconnect to revert authentication
             self.probe.reconnect(Duration::new(1, 0)).await?;

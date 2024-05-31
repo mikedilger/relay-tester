@@ -3,9 +3,12 @@ use crate::probe::{AuthState, Command};
 use crate::results::{set_outcome_by_name, Outcome};
 use crate::runner::Runner;
 use nostr_types::{
-    EventKind, Filter, IdHex, PrivateKey, RelayMessage, SubscriptionId, Tag, Unixtime,
+    EventKind, Filter, IdHex, PreEvent, PrivateKey, RelayMessage, Signer, SubscriptionId, Tag,
+    Unixtime,
 };
 use serde_json::Value;
+use std::ops::Sub;
+use std::time::Duration;
 
 impl Runner {
     pub async fn test_nip11(&mut self) {
@@ -147,8 +150,7 @@ impl Runner {
 
         self.probe
             .send(Command::FetchEvents(our_sub_id.clone(), vec![filter]))
-            .await
-            .unwrap();
+            .await;
 
         let outcome;
         loop {
@@ -193,20 +195,15 @@ impl Runner {
                 "This is a test from a random keypair. Feel free to delete.".to_string(),
                 &self.stranger1,
             )
-            .await
-            .unwrap();
+            .await;
 
         // Wait for an Ok response
-        let outcome = match self.probe.wait_for_ok().await {
-            Ok((id, ok, _reason)) => {
-                if id == event_id {
-                    if ok {
-                        Outcome::Pass
-                    } else {
-                        Outcome::Fail
-                    }
+        let outcome = match self.probe.wait_for_ok(event_id).await {
+            Ok((ok, _reason)) => {
+                if ok {
+                    Outcome::Pass
                 } else {
-                    Outcome::Fail2("Responded to EVENT with OK with a different id".to_owned())
+                    Outcome::Fail
                 }
             }
             Err(Error::Timeout(_)) => {
@@ -225,13 +222,12 @@ impl Runner {
             filter.add_event_kind(EventKind::TextNote);
             self.probe
                 .send(Command::FetchEvents(our_sub_id.clone(), vec![filter]))
-                .await
-                .unwrap();
+                .await;
 
             // Wait for events
             let outcome = match self.probe.wait_for_events("public_readback").await {
                 Ok(events) => {
-                    if events.len() > 0 {
+                    if !events.is_empty() {
                         if events[0].id == event_id {
                             Outcome::Pass
                         } else {
@@ -252,6 +248,68 @@ impl Runner {
         } else {
             set_outcome_by_name("public_can_read_back", Outcome::Info("n/a".to_owned()));
         }
+    }
+
+    pub async fn test_created_at_events(&mut self) -> Result<(), Error> {
+        let mut pre_event = PreEvent {
+            pubkey: self.registered_user.public_key(),
+            created_at: Unixtime::now().unwrap(),
+            kind: EventKind::TextNote,
+            tags: vec![],
+            content: "Testing created_at variations".to_owned(),
+        };
+
+        // now (to verify we can post, not recorded as a test outcome)
+        let event_id = self
+            .probe
+            .post_preevent(&pre_event, &self.registered_user)
+            .await;
+        let (ok, _reason) = match self.probe.wait_for_ok(event_id).await {
+            Ok(data) => data,
+            Err(_) => return Err(Error::CannotPost),
+        };
+        if !ok {
+            return Err(Error::CannotPost);
+        }
+
+        // 1 week ago
+        pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 7, 0));
+        let event_id = self
+            .probe
+            .post_preevent(&pre_event, &self.registered_user)
+            .await;
+        let (ok, reason) = match self.probe.wait_for_ok(event_id).await {
+            Ok(data) => data,
+            Err(_) => return Err(Error::CannotPost),
+        };
+        if ok {
+            set_outcome_by_name("accepts_events_one_week_old", Outcome::Yes);
+        } else {
+            set_outcome_by_name("accepts_events_one_week_old", Outcome::No2(reason));
+        }
+
+        // 1 month ago
+        // 1 year ago
+        // 2015
+        // 2000
+        // 1970
+        // 1969 (negative date)
+        // 1 year hence
+        // gigantic date
+        // date with exponential format
+
+        //set_outcome_by_name("accepts_events_one_month_old", outcome);
+        //set_outcome_by_name("accepts_events_one_year_old", outcome);
+        //set_outcome_by_name("accepts_events_from_before_nostr", outcome);
+        //set_outcome_by_name("accepts_events_from_before_2000", outcome);
+        //set_outcome_by_name("accepts_events_from_1970", outcome);
+        //set_outcome_by_name("accepts_events_from_before_1970", outcome);
+        //set_outcome_by_name("accepts_events_in_one_year_into_the_future", outcome);
+        //set_outcome_by_name("accepts_events_in_the_distant_future", outcome);
+        //set_outcome_by_name("accepts_events_with_created_at_larger_than_64bit", outcome);
+        //set_outcome_by_name("accepts_events_with_exponential_created_at_format", outcome);
+
+        Ok(())
     }
 
     /*

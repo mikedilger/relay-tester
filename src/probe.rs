@@ -89,8 +89,8 @@ impl Probe {
         self.auth_state.clone()
     }
 
-    pub async fn send(&self, command: Command) -> Result<(), Error> {
-        Ok(self.sender.send(command).await?)
+    pub async fn send(&self, command: Command) {
+        self.sender.send(command).await.unwrap()
     }
 
     pub async fn post(
@@ -100,7 +100,7 @@ impl Probe {
         tags: Vec<Tag>,
         content: String,
         signer: &dyn Signer,
-    ) -> Result<Id, Error> {
+    ) -> Id {
         let pre_event = PreEvent {
             pubkey: signer.public_key(),
             created_at,
@@ -108,17 +108,24 @@ impl Probe {
             tags,
             content,
         };
-        let event = signer.sign_event(pre_event)?;
-        let event_id = event.id;
-        self.send(Command::PostEvent(event)).await?;
-        Ok(event_id)
+        self.post_preevent(&pre_event, signer).await
     }
 
-    pub async fn wait_for_ok(&mut self) -> Result<(Id, bool, String), Error> {
+    pub async fn post_preevent(&self, pre_event: &PreEvent, signer: &dyn Signer) -> Id {
+        assert_eq!(pre_event.pubkey, signer.public_key());
+        let event = signer.sign_event(pre_event.clone()).unwrap();
+        let event_id = event.id;
+        self.send(Command::PostEvent(event)).await;
+        event_id
+    }
+
+    pub async fn wait_for_ok(&mut self, id: Id) -> Result<(bool, String), Error> {
         loop {
             let rm = self.wait_for_a_response().await?;
-            if let RelayMessage::Ok(id, ok, reason) = rm {
-                return Ok((id, ok, reason));
+            if let RelayMessage::Ok(ok_id, ok, reason) = rm {
+                if ok_id == id {
+                    return Ok((ok, reason));
+                }
             }
         }
     }
@@ -197,7 +204,7 @@ impl Probe {
             let event = signer.sign_event(pre_event)?;
 
             self.auth_state = AuthState::InProgress(event.id);
-            self.sender.send(Command::Auth(event)).await?;
+            self.sender.send(Command::Auth(event)).await.unwrap();
             Ok(())
         } else {
             Err(Error::NotChallenged)
@@ -216,26 +223,24 @@ impl Probe {
                         } else {
                             AuthState::Failure(reason.clone())
                         };
-                        return Ok(None);
+                        Ok(None)
                     } else {
                         // Was an OK about some other event (not the auth event)
-                        return Ok(Some(rm));
+                        Ok(Some(rm))
                     }
                 } else {
                     // Was an OK about some other event (we haven't sent auth)
-                    return Ok(Some(rm));
+                    Ok(Some(rm))
                 }
             }
-            _ => {
-                return Err(Error::General(
-                    "process_ok() called with the wrong kind of RelayMessage".to_owned(),
-                ))
-            }
+            _ => Err(Error::General(
+                "process_ok() called with the wrong kind of RelayMessage".to_owned(),
+            )),
         }
     }
 
     pub async fn exit(self) -> Result<(), Error> {
-        self.sender.send(Command::Exit).await?;
+        self.sender.send(Command::Exit).await.unwrap();
         if let Some(join_handle) = self.join_handle {
             join_handle.await?;
         }
@@ -244,7 +249,7 @@ impl Probe {
     }
 
     pub async fn reconnect(&mut self, delay: Duration) -> Result<(), Error> {
-        self.sender.send(Command::Exit).await?;
+        self.sender.send(Command::Exit).await.unwrap();
 
         let mut join_handle: Option<JoinHandle<()>> = None;
         std::mem::swap(&mut self.join_handle, &mut join_handle);
@@ -317,7 +322,7 @@ impl ProbeInner {
             tokio::select! {
                 _ = ping_timer.tick() => {
                     let msg = Message::Ping(vec![0x1]);
-                    self.send(&mut websocket, msg).await?;
+                    self.send(&mut websocket, msg).await;
                 },
                 local_message = self.input.recv() => {
                     match local_message {
@@ -325,22 +330,22 @@ impl ProbeInner {
                             let client_message = ClientMessage::Event(Box::new(event));
                             let wire = serde_json::to_string(&client_message)?;
                             let msg = Message::Text(wire);
-                            self.send(&mut websocket, msg).await?;
+                            self.send(&mut websocket, msg).await;
                         },
                         Some(Command::Auth(event)) => {
                             let client_message = ClientMessage::Auth(Box::new(event));
                             let wire = serde_json::to_string(&client_message)?;
                             let msg = Message::Text(wire);
-                            self.send(&mut websocket, msg).await?;
+                            self.send(&mut websocket, msg).await;
                         },
                         Some(Command::FetchEvents(subid, filters)) => {
                             let client_message = ClientMessage::Req(subid, filters);
                             let wire = serde_json::to_string(&client_message)?;
                             let msg = Message::Text(wire);
-                            self.send(&mut websocket, msg).await?;
+                            self.send(&mut websocket, msg).await;
                         },
                         Some(Command::Exit) => {
-                            self.send(&mut websocket, Message::Close(None)).await?;
+                            self.send(&mut websocket, Message::Close(None)).await;
                         },
                         None => { }
                     }
@@ -364,7 +369,7 @@ impl ProbeInner {
                         Message::Text(s) => {
                             // Send back to main
                             let relay_message: RelayMessage = serde_json::from_str(&s)?;
-                            self.output.send(relay_message).await?;
+                            self.output.send(relay_message).await.unwrap();
                         },
                         Message::Binary(_) => { },
                         Message::Ping(_) => { },
@@ -436,7 +441,7 @@ impl ProbeInner {
         Ok(())
     }
 
-    async fn send(&mut self, websocket: &mut Ws, message: Message) -> Result<(), Error> {
+    async fn send(&mut self, websocket: &mut Ws, message: Message) {
         match message {
             Message::Text(ref s) => eprintln!("{}: Text({})", PREFIXES.sending, s),
             Message::Binary(_) => eprintln!("{}: Binary(_)", PREFIXES.sending),
@@ -445,6 +450,6 @@ impl ProbeInner {
             Message::Close(_) => eprintln!("{}: Close(_)", PREFIXES.sending),
             Message::Frame(_) => eprintln!("{}: Frame(_)", PREFIXES.sending),
         }
-        Ok(websocket.send(message).await?)
+        websocket.send(message).await.unwrap()
     }
 }
