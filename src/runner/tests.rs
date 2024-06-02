@@ -31,18 +31,18 @@ impl Runner {
         let nip11 = match self.fetch_nip11().await {
             Ok(nip11) => nip11,
             Err(e) => {
-                let outcome = Outcome::Fail2(format!("{}", e));
+                let outcome = Outcome::new(false, Some(format!("{}", e)));
                 set_outcome_by_name("nip11_provided", outcome.clone());
                 setall(outcome);
                 return;
             }
         };
-        set_outcome_by_name("nip11_provided", Outcome::Pass);
+        set_outcome_by_name("nip11_provided", Outcome::new(true, None));
 
-        setall(Outcome::Fail2("Error parsing nip11".to_owned()));
+        setall(Outcome::new(false, Some("Error parsing nip11".to_owned())));
         if let Value::Object(map) = nip11 {
             if let Some(varray) = map.get("supported_nips") {
-                setall(Outcome::Info("not supported".to_owned()));
+                setall(Outcome::new(false, Some("not supported".to_owned())));
                 if let Value::Array(vec) = varray {
                     for valelem in vec.iter() {
                         if let Value::Number(vnum) = valelem {
@@ -50,51 +50,51 @@ impl Runner {
                                 match u {
                                     4 => set_outcome_by_name(
                                         "claimed_support_for_nip4",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     9 => set_outcome_by_name(
                                         "claimed_support_for_nip9",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     11 => set_outcome_by_name(
                                         "claimed_support_for_nip11",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     26 => set_outcome_by_name(
                                         "claimed_support_for_nip26",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     29 => set_outcome_by_name(
                                         "claimed_support_for_nip29",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     40 => set_outcome_by_name(
                                         "claimed_support_for_nip40",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     42 => set_outcome_by_name(
                                         "claimed_support_for_nip42",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     45 => set_outcome_by_name(
                                         "claimed_support_for_nip45",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     50 => set_outcome_by_name(
                                         "claimed_support_for_nip50",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     65 => set_outcome_by_name(
                                         "claimed_support_for_nip65",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     94 => set_outcome_by_name(
                                         "claimed_support_for_nip94",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     96 => set_outcome_by_name(
                                         "claimed_support_for_nip96",
-                                        Outcome::Pass,
+                                        Outcome::new(true, None),
                                     ),
                                     _ => {}
                                 }
@@ -119,13 +119,13 @@ impl Runner {
                 Err(Error::Timeout(_)) => {
                     // Expected timeout.
                     outcome = match self.probe.auth_state() {
-                        AuthState::NotYetRequested => Outcome::Fail,
-                        _ => Outcome::Pass,
+                        AuthState::NotYetRequested => Outcome::new(false, None),
+                        _ => Outcome::new(true, None),
                     };
                     break;
                 }
                 Err(e) => {
-                    outcome = Outcome::Fail2(format!("{}", e));
+                    outcome = Outcome::new(false, Some(format!("{}", e)));
                     break;
                 }
             }
@@ -157,11 +157,11 @@ impl Runner {
             let rm = match self.probe.wait_for_a_response().await {
                 Ok(rm) => rm,
                 Err(Error::Timeout(_)) => {
-                    outcome = Outcome::Fail;
+                    outcome = Outcome::new(false, None);
                     break;
                 }
                 Err(e) => {
-                    outcome = Outcome::Fail2(format!("{}", e));
+                    outcome = Outcome::new(false, Some(format!("{}", e)));
                     break;
                 }
             };
@@ -169,9 +169,12 @@ impl Runner {
             match rm {
                 RelayMessage::Eose(subid) => {
                     if subid == our_sub_id {
-                        outcome = Outcome::Pass;
+                        outcome = Outcome::new(true, None);
                     } else {
-                        outcome = Outcome::Fail2("Got EOSE with unrecognized subid".to_string());
+                        outcome = Outcome::new(
+                            false,
+                            Some("Got EOSE with unrecognized subid".to_string()),
+                        );
                     }
                     break;
                 }
@@ -201,20 +204,18 @@ impl Runner {
         let outcome = match self.probe.wait_for_ok(event_id).await {
             Ok((ok, _reason)) => {
                 if ok {
-                    Outcome::Pass
+                    Outcome::new(true, None)
                 } else {
-                    Outcome::Fail
+                    Outcome::new(false, None)
                 }
             }
-            Err(Error::Timeout(_)) => {
-                Outcome::Fail2("No response to an EVENT submission".to_owned())
-            }
-            Err(e) => Outcome::Fail2(format!("{}", e)),
+            Err(Error::Timeout(_)) => Outcome::err("No response to an EVENT submission".to_owned()),
+            Err(e) => Outcome::new(false, Some(format!("{}", e))),
         };
         set_outcome_by_name("public_can_write", outcome.clone());
 
         // If it passed, try to read it back
-        if matches!(outcome, Outcome::Pass) {
+        if matches!(outcome.pass, Some(true)) {
             let idhex: IdHex = event_id.into();
             let our_sub_id = SubscriptionId("public_readback".to_string());
             let mut filter = Filter::new();
@@ -229,24 +230,31 @@ impl Runner {
                 Ok(events) => {
                     if !events.is_empty() {
                         if events[0].id == event_id {
-                            Outcome::Pass
+                            Outcome::new(true, None)
                         } else {
-                            Outcome::Fail2("Returned event is wrong".to_owned())
+                            Outcome::new(false, Some("Returned event is wrong".to_owned()))
                         }
                     } else {
-                        Outcome::Fail2(
-                            "Failed to retrieve event we just successfully submitted.".to_owned(),
+                        Outcome::new(
+                            false,
+                            Some(
+                                "Failed to retrieve event we just successfully submitted."
+                                    .to_owned(),
+                            ),
                         )
                     }
                 }
                 Err(Error::Timeout(_)) => {
-                    Outcome::Fail2("No response to an REQ submission".to_owned())
+                    Outcome::new(false, Some("No response to an REQ submission".to_owned()))
                 }
-                Err(e) => Outcome::Fail2(format!("{}", e)),
+                Err(e) => Outcome::new(false, Some(format!("{}", e))),
             };
             set_outcome_by_name("public_can_read_back", outcome);
         } else {
-            set_outcome_by_name("public_can_read_back", Outcome::Info("n/a".to_owned()));
+            set_outcome_by_name(
+                "public_can_read_back",
+                Outcome::new(false, Some("n/a".to_owned())),
+            );
         }
     }
 
@@ -408,12 +416,12 @@ impl Runner {
             Ok(match self.probe.auth_state() {
                 AuthState::NotYetRequested => Outcome::Fail,
                 AuthState::Challenged(_) => {
-                    Outcome::Fail2("Challenged but we failed to AUTH back".to_string())
+                    Outcome::new(false, Some("Challenged but we failed to AUTH back".to_string()))
                 }
-                AuthState::InProgress(_) => Outcome::Fail2("Did not OK the AUTH".to_string()),
-                AuthState::Success => Outcome::Pass,
-                AuthState::Failure(s) => Outcome::Fail2(s),
-                AuthState::Duplicate => Outcome::Fail2("AUTHed multiple times".to_string()),
+                AuthState::InProgress(_) => Outcome::new(false, Some("Did not OK the AUTH".to_string())),
+                AuthState::Success => Outcome::new(true, None),
+                AuthState::Failure(s) => Outcome::new(false, Some(s)),
+                AuthState::Duplicate => Outcome::new(false, Some("AUTHed multiple times".to_string())),
             })
     }
         */

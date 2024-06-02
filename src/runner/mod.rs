@@ -179,14 +179,14 @@ impl Runner {
         let (ok, reason) = match self.probe.wait_for_ok(raw_event_id).await {
             Ok(data) => data,
             Err(e) => {
-                set_outcome_by_name(outcome_name, Outcome::Fail2(format!("{}", e)));
+                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{}", e))));
                 return;
             }
         };
         let outcome = if ok {
-            Outcome::Yes
+            Outcome::new(true, None)
         } else {
-            Outcome::No2(reason)
+            Outcome::new(false, Some(reason))
         };
         set_outcome_by_name(outcome_name, outcome);
     }
@@ -203,14 +203,14 @@ impl Runner {
         let (ok, reason) = match self.probe.wait_for_ok(event_id).await {
             Ok(data) => data,
             Err(e) => {
-                set_outcome_by_name(outcome_name, Outcome::Fail2(format!("{}", e)));
+                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{}", e))));
                 return;
             }
         };
         let outcome = if ok {
-            Outcome::Yes
+            Outcome::new(true, None)
         } else {
-            Outcome::No2(reason)
+            Outcome::new(false, Some(reason))
         };
         set_outcome_by_name(outcome_name, outcome);
     }

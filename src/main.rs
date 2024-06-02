@@ -4,7 +4,7 @@ mod results;
 mod runner;
 
 use crate::error::Error;
-use crate::results::{NUMTESTS, RESULTS, TESTNAMES};
+use crate::results::{TestDef, NUMTESTS, RESULTS, TESTDEFS};
 use crate::runner::Runner;
 use colorful::{Color, Colorful};
 use lazy_static::lazy_static;
@@ -35,8 +35,12 @@ async fn main() -> Result<(), Error> {
     println!("\nRESULTS:");
     let results = &(*(*RESULTS).read().unwrap());
     for i in 0..NUMTESTS {
-        let result = &results[i];
-        println!("{}: {}", TESTNAMES[i], result);
+        let testdef = TestDef {
+            required: TESTDEFS[i].0,
+            name: TESTDEFS[i].1,
+            outcome: results[i].clone(),
+        };
+        println!("{}", testdef);
     }
 
     Ok(())
