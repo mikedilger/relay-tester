@@ -127,7 +127,7 @@ impl Probe {
     pub async fn wait_for_maybe_auth(&mut self) -> Result<(), Error> {
         loop {
             match self.wait_for_a_response().await {
-                Ok(_) => continue, // some message, but not AUTH, keep waiting
+                Ok(_) => continue,                      // some message, but not AUTH, keep waiting
                 Err(Error::Timeout(_)) => break Ok(()), // nothing is forthcoming
                 Err(e) => break Err(e),
             }

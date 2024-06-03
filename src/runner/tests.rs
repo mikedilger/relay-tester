@@ -3,8 +3,8 @@ use crate::probe::{AuthState, Command};
 use crate::results::{set_outcome_by_name, Outcome};
 use crate::runner::Runner;
 use nostr_types::{
-    EventKind, Filter, IdHex, PreEvent, PrivateKey, RelayMessage, Signer, SubscriptionId, Tag,
-    Unixtime,
+    EventKind, Filter, IdHex, PreEvent, PrivateKey, PublicKeyHex, RelayMessage, Signer,
+    SubscriptionId, Tag, Unixtime,
 };
 use serde_json::Value;
 use std::ops::{Add, Sub};
@@ -370,47 +370,43 @@ impl Runner {
     }
 
     pub async fn test_authenticated_fetches(&mut self) {
-
         if self.ids_to_fetch.is_empty() {
-            set_outcome_by_name("find_by_id", Outcome::err("Could not test because we could not write any events to read back.".to_string()));
+            set_outcome_by_name(
+                "find_by_id",
+                Outcome::err(
+                    "Could not test because we could not write any events to read back."
+                        .to_string(),
+                ),
+            );
         } else {
-            // Fetch by ids
             let filter = {
                 let mut filter = Filter::new();
                 filter.ids = self.ids_to_fetch.iter().map(|id| (*id).into()).collect();
                 filter
             };
-
-            let outcome = match self.fetch_by_filter(&filter).await {
-                Ok(events) => {
-                    if events.len() == self.ids_to_fetch.len() {
-                        Outcome::new(true, None)
-                    } else {
-                        Outcome::new(false, Some(format!("Expected {} got {}", self.ids_to_fetch.len(), events.len())))
-                    }
-                },
-                Err(Error::Timeout(_)) => {
-                    Outcome::new(false, Some("Timed out".to_owned()))
-                },
-                Err(e) => {
-                    Outcome::new(false, Some(format!("{}", e)))
-                },
-            };
-            set_outcome_by_name("find_by_id", outcome);
+            self.test_fetch_by_filter(filter, Some(self.ids_to_fetch.len()), "find_by_id")
+                .await;
         }
-    }
 
-    //"find_by_pubkey_and_kind",
-    //  self.registered_user.public_key(), self.stranger1.public_key(),
-    //  EventKind::TextNote, EventKind::ContactList
-    //
-    //"find_by_pubkey_and_tags",
-    //"find_by_pubkey_and_tags",
-    //
-    //"find_by_kind_and_tags",
-    //"find_by_tags",
-    //"find_by_pubkey",
-    //"find_by_scrape",
-    //"find_replaceable_event",
-    //"find_parameterized_replaceable_event",
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = self.registered_user.public_key().into();
+            filter.add_author(&pkh);
+            let pkh: PublicKeyHex = self.stranger1.public_key().into();
+            filter.add_author(&pkh);
+            filter.add_event_kind(EventKind::TextNote);
+            filter.add_event_kind(EventKind::ContactList);
+            filter
+        };
+        self.test_fetch_by_filter(filter, None, "find_by_pubkey_and_kind")
+            .await;
+
+        //"find_by_pubkey_and_tags",
+        //"find_by_kind_and_tags",
+        //"find_by_tags",
+        //"find_by_pubkey",
+        //"find_by_scrape",
+        //"find_replaceable_event",
+        //"find_parameterized_replaceable_event",
+    }
 }

@@ -216,14 +216,66 @@ impl Runner {
         set_outcome_by_name(outcome_name, outcome);
     }
 
-    async fn fetch_by_filter(
-        &mut self,
-        filter: &Filter,
-    ) -> Result<Vec<Event>, Error> {
+    async fn fetch_by_filter(&mut self, filter: &Filter) -> Result<Vec<Event>, Error> {
         let sub_id = SubscriptionId(format!("sub{}", self.next_sub_id));
 
         self.next_sub_id += 1;
-        self.probe.send(Command::FetchEvents(sub_id.clone(), vec![filter.to_owned()])).await;
+        self.probe
+            .send(Command::FetchEvents(
+                sub_id.clone(),
+                vec![filter.to_owned()],
+            ))
+            .await;
         self.probe.wait_for_events(&sub_id).await
+    }
+
+    async fn test_fetch_by_filter(
+        &mut self,
+        filter: Filter,
+        expected_count: Option<usize>,
+        outcome_name: &'static str,
+    ) {
+        let events = match self.fetch_by_filter(&filter).await {
+            Ok(events) => events,
+            Err(Error::Timeout(_)) => {
+                set_outcome_by_name(
+                    outcome_name,
+                    Outcome::new(false, Some("Timed out".to_owned())),
+                );
+                return;
+            }
+            Err(e) => {
+                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{}", e))));
+                return;
+            }
+        };
+
+        if let Some(expected) = expected_count {
+            if events.len() != expected {
+                set_outcome_by_name(
+                    outcome_name,
+                    Outcome::new(
+                        false,
+                        Some(format!("Expected {} got {}", expected, events.len())),
+                    ),
+                );
+                return;
+            }
+        }
+
+        for event in events.iter() {
+            if !filter.event_matches(event) {
+                set_outcome_by_name(
+                    outcome_name,
+                    Outcome::new(
+                        false,
+                        Some("Event returned doesn't match filter".to_owned()),
+                    ),
+                );
+                return;
+            }
+        }
+
+        set_outcome_by_name(outcome_name, Outcome::new(true, None));
     }
 }
