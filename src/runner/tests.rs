@@ -106,30 +106,13 @@ impl Runner {
         }
     }
     pub async fn test_prompts_for_auth_initially(&mut self) {
-        let outcome;
-        loop {
-            match self.probe.wait_for_a_response().await {
-                Ok(_) => {
-                    // AUTH would have been captured by probe, so this is some
-                    // message other than AUTH that we didn't expect.
-                    //
-                    // Ignore it.
-                    continue;
-                }
-                Err(Error::Timeout(_)) => {
-                    // Expected timeout.
-                    outcome = match self.probe.auth_state() {
-                        AuthState::NotYetRequested => Outcome::new(false, None),
-                        _ => Outcome::new(true, None),
-                    };
-                    break;
-                }
-                Err(e) => {
-                    outcome = Outcome::new(false, Some(format!("{}", e)));
-                    break;
-                }
-            }
-        }
+        let outcome = match self.probe.wait_for_maybe_auth().await {
+            Ok(_) => match self.probe.auth_state() {
+                AuthState::NotYetRequested => Outcome::new(false, None),
+                _ => Outcome::new(true, None),
+            },
+            Err(e) => Outcome::new(false, Some(format!("{}", e))),
+        };
 
         set_outcome_by_name("prompts_for_auth_initially", outcome);
     }

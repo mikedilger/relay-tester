@@ -124,6 +124,16 @@ impl Probe {
         self.send(Command::PostRawEvent(event.to_owned())).await;
     }
 
+    pub async fn wait_for_maybe_auth(&mut self) -> Result<(), Error> {
+        loop {
+            match self.wait_for_a_response().await {
+                Ok(_) => continue, // some message, but not AUTH, keep waiting
+                Err(Error::Timeout(_)) => break Ok(()), // nothing is forthcoming
+                Err(e) => break Err(e),
+            }
+        }
+    }
+
     pub async fn wait_for_ok(&mut self, id: Id) -> Result<(bool, String), Error> {
         loop {
             let rm = self.wait_for_a_response().await?;
@@ -194,6 +204,8 @@ impl Probe {
     /// This authenticates with a challenge that the relay previously presented,
     /// if in that state.
     pub async fn authenticate(&mut self, signer: &dyn Signer) -> Result<(), Error> {
+        self.wait_for_maybe_auth().await?;
+
         if let AuthState::Challenged(ref challenge) = self.auth_state {
             let pre_event = PreEvent {
                 pubkey: signer.public_key(),
