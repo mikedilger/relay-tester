@@ -187,6 +187,7 @@ impl Runner {
         let outcome = match self.probe.wait_for_ok(event_id).await {
             Ok((ok, _reason)) => {
                 if ok {
+                    self.ids_to_fetch.push(event_id);
                     Outcome::new(true, None)
                 } else {
                     Outcome::new(false, None)
@@ -367,4 +368,49 @@ impl Runner {
 
         Ok(())
     }
+
+    pub async fn test_authenticated_fetches(&mut self) {
+
+        if self.ids_to_fetch.is_empty() {
+            set_outcome_by_name("find_by_id", Outcome::err("Could not test because we could not write any events to read back.".to_string()));
+        } else {
+            // Fetch by ids
+            let filter = {
+                let mut filter = Filter::new();
+                filter.ids = self.ids_to_fetch.iter().map(|id| (*id).into()).collect();
+                filter
+            };
+
+            let outcome = match self.fetch_by_filter(&filter).await {
+                Ok(events) => {
+                    if events.len() == self.ids_to_fetch.len() {
+                        Outcome::new(true, None)
+                    } else {
+                        Outcome::new(false, Some(format!("Expected {} got {}", self.ids_to_fetch.len(), events.len())))
+                    }
+                },
+                Err(Error::Timeout(_)) => {
+                    Outcome::new(false, Some("Timed out".to_owned()))
+                },
+                Err(e) => {
+                    Outcome::new(false, Some(format!("{}", e)))
+                },
+            };
+            set_outcome_by_name("find_by_id", outcome);
+        }
+    }
+
+    //"find_by_pubkey_and_kind",
+    //  self.registered_user.public_key(), self.stranger1.public_key(),
+    //  EventKind::TextNote, EventKind::ContactList
+    //
+    //"find_by_pubkey_and_tags",
+    //"find_by_pubkey_and_tags",
+    //
+    //"find_by_kind_and_tags",
+    //"find_by_tags",
+    //"find_by_pubkey",
+    //"find_by_scrape",
+    //"find_replaceable_event",
+    //"find_parameterized_replaceable_event",
 }

@@ -1,7 +1,7 @@
 use crate::error::Error;
-use crate::probe::Probe;
+use crate::probe::{Command, Probe};
 use crate::results::{set_outcome_by_name, Outcome};
-use nostr_types::{Id, KeySigner, PreEvent, PrivateKey, Signer};
+use nostr_types::{Event, Filter, Id, KeySigner, PreEvent, PrivateKey, Signer, SubscriptionId};
 use secp256k1::hashes::Hash;
 use std::time::Duration;
 
@@ -11,6 +11,8 @@ pub struct Runner {
     probe: Probe,
     stranger1: KeySigner,
     registered_user: KeySigner,
+    ids_to_fetch: Vec<Id>,
+    next_sub_id: usize,
 }
 
 impl Runner {
@@ -28,6 +30,8 @@ impl Runner {
             probe,
             registered_user,
             stranger1,
+            ids_to_fetch: Vec::new(),
+            next_sub_id: 0,
         }
     }
 
@@ -72,7 +76,7 @@ impl Runner {
 
         // Authenticate as the configured registered user
         self.probe.reconnect(Duration::new(1, 0)).await?;
-        let _ = self.probe.wait_for_a_response().await;
+        self.test_prompts_for_auth_initially().await; // DID NOT WORK???
         if self
             .probe
             .authenticate(&self.registered_user)
@@ -84,6 +88,8 @@ impl Runner {
         }
 
         // Tests that run as the registered user
+        self.test_authenticated_fetches().await;
+
         // TBD
 
         Ok(())
@@ -177,6 +183,7 @@ impl Runner {
             }
         };
         let outcome = if ok {
+            self.ids_to_fetch.push(raw_event_id);
             Outcome::new(true, None)
         } else {
             Outcome::new(false, Some(reason))
@@ -201,10 +208,22 @@ impl Runner {
             }
         };
         let outcome = if ok {
+            self.ids_to_fetch.push(event_id);
             Outcome::new(true, None)
         } else {
             Outcome::new(false, Some(reason))
         };
         set_outcome_by_name(outcome_name, outcome);
+    }
+
+    async fn fetch_by_filter(
+        &mut self,
+        filter: &Filter,
+    ) -> Result<Vec<Event>, Error> {
+        let sub_id = SubscriptionId(format!("sub{}", self.next_sub_id));
+
+        self.next_sub_id += 1;
+        self.probe.send(Command::FetchEvents(sub_id.clone(), vec![filter.to_owned()])).await;
+        self.probe.wait_for_events(&sub_id).await
     }
 }
