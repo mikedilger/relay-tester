@@ -10,7 +10,6 @@ mod tests;
 pub struct Runner {
     probe: Probe,
     stranger1: KeySigner,
-    //stranger2: KeySigner,
     registered_user: KeySigner,
 }
 
@@ -23,18 +22,12 @@ impl Runner {
             KeySigner::from_private_key(private_key, "", 8).unwrap()
         };
 
-        /*let stranger2 = {
-            let private_key = PrivateKey::generate();
-            KeySigner::from_private_key(private_key, "", 8).unwrap()
-        };*/
-
         let probe = Probe::new(relay_url);
 
         Runner {
             probe,
             registered_user,
             stranger1,
-            //stranger2,
         }
     }
 

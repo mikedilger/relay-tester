@@ -85,7 +85,7 @@ pub const TESTDEFS: [(bool, &str); 96] = [
     (false, "claimed_support_for_nip96"),
     // Public permission checks
     (false, "public_can_write"),
-    (true, "public_can_read_back"),
+    (false, "public_can_read_back"),
     // NIP-01
     (true, "supports_eose"),
     (true, "find_by_id"),

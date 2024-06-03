@@ -365,47 +365,6 @@ impl Runner {
         )
         .await;
 
-        // date with exponential format
-        // set_outcome_by_name("accepts_events_with_exponential_created_at_format", outcome);
-        // We would have to construct the JSON manually, nostr-types doesn't handle this
-
         Ok(())
     }
-
-    /*
-    pub async fn test_can_auth_as_unknown(&mut self) -> Result<Outcome, Error> {
-            Ok(Outcome::Untested)
-        }
-
-        pub async fn test_can_auth_as_known(&mut self) -> Result<Outcome, Error> {
-            // Listen for any final messages first
-            loop {
-                match self.probe.wait_for_a_response().await {
-                    Ok(_) => {
-                        // We didn't expect that.
-                        continue;
-                    }
-                    Err(Error::Timeout(_)) => {
-                        // expected,
-                        break;
-                    }
-                    Err(e) => {
-                        // FIXME: This should be recorded in results instead.
-                        return Err(e);
-                    }
-                }
-            }
-
-            Ok(match self.probe.auth_state() {
-                AuthState::NotYetRequested => Outcome::Fail,
-                AuthState::Challenged(_) => {
-                    Outcome::new(false, Some("Challenged but we failed to AUTH back".to_string()))
-                }
-                AuthState::InProgress(_) => Outcome::new(false, Some("Did not OK the AUTH".to_string())),
-                AuthState::Success => Outcome::new(true, None),
-                AuthState::Failure(s) => Outcome::new(false, Some(s)),
-                AuthState::Duplicate => Outcome::new(false, Some("AUTHed multiple times".to_string())),
-            })
-    }
-        */
 }
