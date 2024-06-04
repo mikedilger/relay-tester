@@ -3,7 +3,8 @@ use crate::probe::AuthState;
 use crate::results::{set_outcome_by_name, Outcome};
 use crate::runner::Runner;
 use nostr_types::{
-    EventKind, Filter, Id, PreEvent, PrivateKey, PublicKeyHex, Signature, Signer, Tag, Unixtime,
+    EventKind, Filter, Id, IdHex, PreEvent, PrivateKey, PublicKeyHex, Signature, Signer, Tag,
+    Unixtime,
 };
 use serde_json::Value;
 use std::ops::{Add, Sub};
@@ -322,7 +323,8 @@ impl Runner {
     }
 
     pub async fn test_fetches(&mut self) {
-        if self.ids_to_fetch.is_empty() {
+        let ids: Vec<IdHex> = self.injected.iter().map(|event| event.id.into()).collect();
+        if ids.is_empty() {
             set_outcome_by_name(
                 "find_by_id",
                 Outcome::err(
@@ -331,12 +333,13 @@ impl Runner {
                 ),
             );
         } else {
+            let ids_len = ids.len();
             let filter = {
                 let mut filter = Filter::new();
-                filter.ids = self.ids_to_fetch.iter().map(|id| (*id).into()).collect();
+                filter.ids = ids;
                 filter
             };
-            self.test_fetch_by_filter(filter, Some(self.ids_to_fetch.len()), "find_by_id")
+            self.test_fetch_by_filter(filter, Some(ids_len), "find_by_id")
                 .await;
         }
 

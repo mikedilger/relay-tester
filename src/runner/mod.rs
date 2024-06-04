@@ -5,76 +5,41 @@ use nostr_types::{Event, Filter, Id, IdHex, KeySigner, PrivateKey, Signer};
 use secp256k1::hashes::Hash;
 use std::time::Duration;
 
+mod inject;
 mod tests;
 
 pub struct Runner {
     probe: Probe,
     stranger1: KeySigner,
     registered_user: KeySigner,
-    ids_to_fetch: Vec<Id>,
+    injected: Vec<Event>,
 }
 
 impl Runner {
     pub fn new(relay_url: String, private_key: PrivateKey) -> Runner {
-        let registered_user = KeySigner::from_private_key(private_key, "", 8).unwrap();
+        let probe = Probe::new(relay_url);
 
         let stranger1 = {
             let private_key = PrivateKey::generate();
             KeySigner::from_private_key(private_key, "", 8).unwrap()
         };
 
-        let probe = Probe::new(relay_url);
+        let registered_user = KeySigner::from_private_key(private_key, "", 8).unwrap();
+
+        let injected = inject::injected_events(&registered_user);
 
         Runner {
             probe,
-            registered_user,
             stranger1,
-            ids_to_fetch: Vec::new(),
+            registered_user,
+            injected,
         }
     }
 
-    pub async fn run(&mut self) -> Result<(), Error> {
-        // Tests that run before authenticating
-        self.test_nip11().await;
-        self.test_prompts_for_auth_initially().await;
-        self.test_supports_eose().await;
-        self.test_public_access().await;
+    pub async fn run(&mut self) {
+        self.run_preauth_tests().await;
 
-        // Inject events as the registered user
-        {
-            // Authenticate as the registered user
-            if self
-                .probe
-                .authenticate(&self.registered_user)
-                .await
-                .is_err()
-            {
-                eprintln!("Cannot authenticate. Cannot continue testing.");
-                return Ok(());
-            }
-
-            // Inject events
-            if let Err(e) = self.test_created_at_events().await {
-                eprintln!("{}", e);
-            }
-
-            // Disconnect and reconnect to revert authentication
-            self.probe.reconnect(Duration::new(1, 0)).await?;
-        }
-
-        // Authenticate as a stranger
-        // FIXME: wait first
-        if self.probe.authenticate(&self.stranger1).await.is_err() {
-            eprintln!("Cannot authenticate. Cannot continue testing.");
-            return Ok(());
-        }
-
-        // Tests that run as a stranger
-        // TBD
-
-        // Authenticate as the configured registered user
-        self.probe.reconnect(Duration::new(1, 0)).await?;
-        self.test_prompts_for_auth_initially().await; // DID NOT WORK???
+        // Authenticate as the registered user
         if self
             .probe
             .authenticate(&self.registered_user)
@@ -82,16 +47,57 @@ impl Runner {
             .is_err()
         {
             eprintln!("Cannot authenticate. Cannot continue testing.");
-            return Ok(());
+            return;
         }
 
-        // Tests that run as the registered user
-        self.test_fetches().await;
+        self.run_registered_tests().await;
+
+        // Disconnect and authenticate as stranger
+        if self.probe.reconnect(Duration::new(1, 0)).await.is_err() {
+            eprintln!("Cannot disconnect/reconnect. Cannot continue testing.");
+            return;
+        }
+
+        if self.probe.authenticate(&self.stranger1).await.is_err() {
+            eprintln!("Cannot authenticate. Cannot continue testing.");
+            return;
+        }
+
+        self.run_stranger_tests().await;
+    }
+
+    // Tests that run before authenticating
+    async fn run_preauth_tests(&mut self) {
+        self.test_nip11().await;
+        self.test_prompts_for_auth_initially().await;
+        self.test_supports_eose().await;
+        self.test_public_access().await;
+    }
+
+    // Tests that run as the registered user
+    async fn run_registered_tests(&mut self) {
+        // Inject events
+        let injected = self.injected.clone();
+        for event in injected {
+            if let Err(e) = self.post_event_and_verify(&event).await {
+                eprintln!("Cannot inject benign events: {e}\nCannot continue testing.");
+                return;
+            }
+        }
+
+        // Test created_at
+        if let Err(e) = self.test_created_at_events().await {
+            eprintln!("{}", e);
+        }
+
+        // Test event validation
         self.test_event_validation().await;
+    }
 
-        // TBD
-
-        Ok(())
+    // Tests that run as a stranger
+    async fn run_stranger_tests(&mut self) {
+        // Test fetches (FIXME to use injected events)
+        self.test_fetches().await
     }
 
     pub async fn exit(self) -> Result<(), Error> {
@@ -186,8 +192,6 @@ impl Runner {
         if events[0] != *event {
             return Err(Error::EventMismatch);
         }
-
-        self.ids_to_fetch.push(event.id);
 
         Ok(())
     }

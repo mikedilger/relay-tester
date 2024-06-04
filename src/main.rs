@@ -28,7 +28,7 @@ async fn main() -> Result<(), Error> {
 
     let mut runner = Runner::new(relay_url, private_key);
 
-    runner.run().await?;
+    runner.run().await;
 
     runner.exit().await?;
 
