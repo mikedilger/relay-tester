@@ -1,6 +1,6 @@
+use super::{url_to_host_and_uri, Command};
 use crate::error::Error;
 use crate::PREFIXES;
-use super::{Command, url_to_host_and_uri};
 use base64::Engine;
 use colorful::{Color, Colorful};
 use futures_util::stream::FusedStream;

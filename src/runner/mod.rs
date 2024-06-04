@@ -1,7 +1,7 @@
 use crate::error::Error;
-use crate::probe::{Command, Probe};
+use crate::probe::Probe;
 use crate::results::{set_outcome_by_name, Outcome};
-use nostr_types::{Event, Filter, Id, KeySigner, PreEvent, PrivateKey, Signer, SubscriptionId};
+use nostr_types::{Filter, Id, KeySigner, PrivateKey, Signer};
 use secp256k1::hashes::Hash;
 use std::time::Duration;
 
@@ -12,7 +12,6 @@ pub struct Runner {
     stranger1: KeySigner,
     registered_user: KeySigner,
     ids_to_fetch: Vec<Id>,
-    next_sub_id: usize,
 }
 
 impl Runner {
@@ -31,7 +30,6 @@ impl Runner {
             registered_user,
             stranger1,
             ids_to_fetch: Vec::new(),
-            next_sub_id: 0,
         }
     }
 
@@ -169,106 +167,16 @@ impl Runner {
         (id, raw_event)
     }
 
-    async fn post_raw_event(
-        &mut self,
-        raw_event: &str,
-        raw_event_id: Id,
-        outcome_name: &'static str,
-    ) {
-        self.probe.post_raw_event(raw_event).await;
-        let (ok, reason) = match self.probe.wait_for_ok(raw_event_id).await {
-            Ok(data) => data,
-            Err(e) => {
-                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{}", e))));
-                return;
-            }
-        };
-        let outcome = if ok {
-            self.ids_to_fetch.push(raw_event_id);
-            Outcome::new(true, None)
-        } else {
-            Outcome::new(false, Some(reason))
-        };
-        set_outcome_by_name(outcome_name, outcome);
-    }
-
-    async fn post_event_as_registered_user(
-        &mut self,
-        pre_event: &PreEvent,
-        outcome_name: &'static str,
-    ) {
-        let event_id = self
-            .probe
-            .post_preevent(pre_event, &self.registered_user)
-            .await;
-        let (ok, reason) = match self.probe.wait_for_ok(event_id).await {
-            Ok(data) => data,
-            Err(e) => {
-                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{}", e))));
-                return;
-            }
-        };
-        let outcome = if ok {
-            self.ids_to_fetch.push(event_id);
-            Outcome::new(true, None)
-        } else {
-            Outcome::new(false, Some(reason))
-        };
-        set_outcome_by_name(outcome_name, outcome);
-    }
-
-    async fn post_event(&mut self, event: &Event, outcome_name: &'static str, should_pass: bool) {
-        self.probe.post_event(event).await;
-        let (ok, reason) = match self.probe.wait_for_ok(event.id).await {
-            Ok(data) => data,
-            Err(e) => {
-                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{}", e))));
-                return;
-            }
-        };
-        let outcome = match (ok, should_pass) {
-            (true, true) | (false, false) => {
-                self.ids_to_fetch.push(event.id);
-                Outcome::new(true, None)
-            }
-            (true, false) => {
-                Outcome::new(false, Some("Accepted but shouldn't have been".to_owned()))
-            }
-            (false, true) => Outcome::new(false, Some(reason)),
-        };
-        set_outcome_by_name(outcome_name, outcome);
-    }
-
-    async fn fetch_by_filter(&mut self, filter: &Filter) -> Result<Vec<Event>, Error> {
-        let sub_id = SubscriptionId(format!("sub{}", self.next_sub_id));
-
-        self.next_sub_id += 1;
-        self.probe
-            .send(Command::FetchEvents(
-                sub_id.clone(),
-                vec![filter.to_owned()],
-            ))
-            .await;
-        self.probe.wait_for_events(&sub_id).await
-    }
-
     async fn test_fetch_by_filter(
         &mut self,
         filter: Filter,
         expected_count: Option<usize>,
         outcome_name: &'static str,
     ) {
-        let events = match self.fetch_by_filter(&filter).await {
+        let events = match self.probe.fetch_events(vec![filter.clone()]).await {
             Ok(events) => events,
-            Err(Error::Timeout(_)) => {
-                set_outcome_by_name(
-                    outcome_name,
-                    Outcome::new(false, Some("Timed out".to_owned())),
-                );
-                return;
-            }
             Err(e) => {
-                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{}", e))));
+                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{e}"))));
                 return;
             }
         };

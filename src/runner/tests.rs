@@ -1,10 +1,10 @@
 use crate::error::Error;
-use crate::probe::{AuthState, Command};
+use crate::probe::AuthState;
 use crate::results::{set_outcome_by_name, Outcome};
 use crate::runner::Runner;
 use nostr_types::{
-    EventKind, Filter, Id, IdHex, PreEvent, PrivateKey, PublicKeyHex, RelayMessage, Signature,
-    Signer, SubscriptionId, Tag, Unixtime,
+    EventKind, Filter, Id, IdHex, PreEvent, PrivateKey, PublicKeyHex, Signature, Signer, Tag,
+    Unixtime,
 };
 use serde_json::Value;
 use std::ops::{Add, Sub};
@@ -119,7 +119,6 @@ impl Runner {
 
     pub async fn test_supports_eose(&mut self) {
         // A very benign filter.
-        let our_sub_id = SubscriptionId("fetch_by_filter".to_string());
         let filter = {
             let mut filter = Filter::new();
             // Use a random author that should have 0 events
@@ -131,63 +130,30 @@ impl Runner {
             filter
         };
 
-        self.probe
-            .send(Command::FetchEvents(our_sub_id.clone(), vec![filter]))
-            .await;
-
-        let outcome;
-        loop {
-            let rm = match self.probe.wait_for_a_response().await {
-                Ok(rm) => rm,
-                Err(Error::Timeout(_)) => {
-                    outcome = Outcome::new(false, None);
-                    break;
-                }
-                Err(e) => {
-                    outcome = Outcome::new(false, Some(format!("{}", e)));
-                    break;
-                }
-            };
-
-            match rm {
-                RelayMessage::Eose(subid) => {
-                    if subid == our_sub_id {
-                        outcome = Outcome::new(true, None);
-                    } else {
-                        outcome = Outcome::new(
-                            false,
-                            Some("Got EOSE with unrecognized subid".to_string()),
-                        );
-                    }
-                    break;
-                }
-                _ => {
-                    // We didn't expect that
-                    continue;
-                }
-            }
-        }
-
+        let outcome = match self.probe.fetch_events(vec![filter]).await {
+            Ok(_) => Outcome::new(true, None),
+            Err(Error::Timeout(_)) => Outcome::new(false, None),
+            Err(e) => Outcome::new(false, Some(format!("{}", e))),
+        };
         set_outcome_by_name("supports_eose", outcome);
     }
 
     pub async fn test_public_access(&mut self) {
-        let event_id = self
-            .probe
-            .post(
-                Unixtime::now().unwrap(),
-                EventKind::TextNote,
-                vec![Tag::new(&["test"])],
-                "This is a test from a random keypair. Feel free to delete.".to_string(),
-                &self.stranger1,
-            )
-            .await;
+        let event = {
+            let pre = PreEvent {
+                pubkey: self.stranger1.public_key(),
+                created_at: Unixtime::now().unwrap(),
+                kind: EventKind::TextNote,
+                tags: vec![Tag::new(&["test"])],
+                content: "This is a test from a random keypair. Feel free to delete.".to_string(),
+            };
+            self.stranger1.sign_event(pre).unwrap()
+        };
 
-        // Wait for an Ok response
-        let outcome = match self.probe.wait_for_ok(event_id).await {
+        let outcome = match self.probe.post_event(&event).await {
             Ok((ok, _reason)) => {
                 if ok {
-                    self.ids_to_fetch.push(event_id);
+                    self.ids_to_fetch.push(event.id);
                     Outcome::new(true, None)
                 } else {
                     Outcome::new(false, None)
@@ -196,24 +162,19 @@ impl Runner {
             Err(Error::Timeout(_)) => Outcome::err("No response to an EVENT submission".to_owned()),
             Err(e) => Outcome::new(false, Some(format!("{}", e))),
         };
+
         set_outcome_by_name("public_can_write", outcome.clone());
 
         // If it passed, try to read it back
         if matches!(outcome.pass, Some(true)) {
-            let idhex: IdHex = event_id.into();
-            let our_sub_id = SubscriptionId("public_readback".to_string());
+            let idhex: IdHex = event.id.into();
             let mut filter = Filter::new();
             filter.add_id(&idhex);
             filter.add_event_kind(EventKind::TextNote);
-            self.probe
-                .send(Command::FetchEvents(our_sub_id.clone(), vec![filter]))
-                .await;
-
-            // Wait for events
-            let outcome = match self.probe.wait_for_events("public_readback").await {
+            match self.probe.fetch_events(vec![filter]).await {
                 Ok(events) => {
                     if !events.is_empty() {
-                        if events[0].id == event_id {
+                        if events[0].id == event.id {
                             Outcome::new(true, None)
                         } else {
                             Outcome::new(false, Some("Returned event is wrong".to_owned()))
@@ -252,11 +213,8 @@ impl Runner {
         };
 
         // now (to verify we can post, not recorded as a test outcome)
-        let event_id = self
-            .probe
-            .post_preevent(&pre_event, &self.registered_user)
-            .await;
-        let (ok, _reason) = match self.probe.wait_for_ok(event_id).await {
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let (ok, _reason) = match self.probe.post_event(&event).await {
             Ok(data) => data,
             Err(_) => return Err(Error::CannotPost),
         };
@@ -266,35 +224,65 @@ impl Runner {
 
         // 1 week ago
         pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 7, 0));
-        self.post_event_as_registered_user(&pre_event, "accepts_events_one_week_old")
-            .await;
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_one_week_old", outcome);
 
         // 1 month ago
         pre_event.created_at = Unixtime::now()
             .unwrap()
             .sub(Duration::new(86400 * 7 * 4, 0));
-        self.post_event_as_registered_user(&pre_event, "accepts_events_one_month_old")
-            .await;
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_one_month_old", outcome);
 
         // 1 year ago
         pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 365, 0));
-        self.post_event_as_registered_user(&pre_event, "accepts_events_one_year_old")
-            .await;
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_one_year_old", outcome);
 
         // 2015
         pre_event.created_at = Unixtime(1420070461); // Thursday, January 1, 2015 12:01:01 AM GMT
-        self.post_event_as_registered_user(&pre_event, "accepts_events_from_before_nostr")
-            .await;
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_from_before_nostr", outcome);
 
         // 1999
         pre_event.created_at = Unixtime(915148861); // Friday, January 1, 1999 12:01:01 AM
-        self.post_event_as_registered_user(&pre_event, "accepts_events_from_before_2000")
-            .await;
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_from_before_2000", outcome);
 
         // 1970
         pre_event.created_at = Unixtime(0); // Thursday, January 1, 1970 12:00:00 AM
-        self.post_event_as_registered_user(&pre_event, "accepts_events_from_1970")
-            .await;
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_from_1970", outcome);
 
         // 1969 (negative date)
         let (id, raw_event) = Self::create_raw_event(
@@ -305,18 +293,32 @@ impl Runner {
             &self.registered_user,
         )
         .await;
-        self.post_raw_event(&raw_event, id, "accepts_events_from_before_1970")
-            .await;
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_from_before_1970", outcome);
 
         // 1 year hence
         pre_event.created_at = Unixtime::now().unwrap().add(Duration::new(86400 * 365, 0));
-        self.post_event_as_registered_user(&pre_event, "accepts_events_one_year_into_the_future")
-            .await;
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_one_year_into_the_future", outcome);
 
         // distant future
         pre_event.created_at = Unixtime(i64::MAX);
-        self.post_event_as_registered_user(&pre_event, "accepts_events_in_the_distant_future")
-            .await;
+        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_in_the_distant_future", outcome);
 
         // created_at greater than signed 32 bit
         let (id, raw_event) = Self::create_raw_event(
@@ -327,12 +329,15 @@ impl Runner {
             &self.registered_user,
         )
         .await;
-        self.post_raw_event(
-            &raw_event,
-            id,
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name(
             "accepts_events_with_created_at_greater_than_signed32bit",
-        )
-        .await;
+            outcome,
+        );
 
         // created_at greater than unsigned 32 bit
         let (id, raw_event) = Self::create_raw_event(
@@ -343,12 +348,15 @@ impl Runner {
             &self.registered_user,
         )
         .await;
-        self.post_raw_event(
-            &raw_event,
-            id,
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name(
             "accepts_events_with_created_at_greater_than_unsigned32bit",
-        )
-        .await;
+            outcome,
+        );
 
         // created_at greater than unsigned 32 bit
         let (id, raw_event) = Self::create_raw_event(
@@ -359,12 +367,15 @@ impl Runner {
             &self.registered_user,
         )
         .await;
-        self.post_raw_event(
-            &raw_event,
-            id,
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name(
             "accepts_events_with_created_at_in_scientific_notation",
-        )
-        .await;
+            outcome,
+        );
 
         Ok(())
     }
@@ -459,7 +470,15 @@ impl Runner {
         };
         let mut event = self.registered_user.sign_event(pre_event.clone()).unwrap();
         event.sig = Signature::zeroes();
-        self.post_event(&event, "verifies_signatures", false).await;
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(
+                false,
+                Some("Accepted event with invalid signature".to_owned()),
+            ),
+            Ok((false, reason)) => Outcome::new(true, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("verifies_signatures", outcome);
 
         // Create event with bad ID (but good signature of that bad ID)
         let mut event = self.registered_user.sign_event(pre_event.clone()).unwrap();
@@ -468,6 +487,11 @@ impl Runner {
         )
         .unwrap();
         event.sig = self.registered_user.sign_id(event.id).unwrap();
-        self.post_event(&event, "verifies_id_hashes", false).await;
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((true, _)) => Outcome::new(false, Some("Accepted event with invalid id".to_owned())),
+            Ok((false, reason)) => Outcome::new(true, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("verifies_id_hashes", outcome);
     }
 }
