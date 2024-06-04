@@ -401,11 +401,49 @@ impl Runner {
         self.test_fetch_by_filter(filter, None, "find_by_pubkey_and_kind")
             .await;
 
-        //"find_by_pubkey_and_tags",
-        //"find_by_kind_and_tags",
-        //"find_by_tags",
-        //"find_by_pubkey",
-        //"find_by_scrape",
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = self.registered_user.public_key().into();
+            filter.add_author(&pkh);
+            filter.add_tag_value('p', pkh.to_string());
+            filter
+        };
+        self.test_fetch_by_filter(filter, None, "find_by_pubkey_and_tags")
+            .await;
+
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = self.registered_user.public_key().into();
+            filter.add_event_kind(EventKind::TextNote);
+            filter.add_event_kind(EventKind::ContactList);
+            filter.add_tag_value('p', pkh.to_string());
+            filter
+        };
+        self.test_fetch_by_filter(filter, None, "find_by_kind_and_tags")
+            .await;
+
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = self.registered_user.public_key().into();
+            filter.add_tag_value('p', pkh.to_string());
+            filter
+        };
+        self.test_fetch_by_filter(filter, None, "find_by_tags")
+            .await;
+
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = self.registered_user.public_key().into();
+            filter.add_author(&pkh);
+            filter
+        };
+        self.test_fetch_by_filter(filter, None, "find_by_pubkey")
+            .await;
+
+        let filter = Filter::new();
+        self.test_fetch_by_filter(filter, None, "find_by_scrape")
+            .await;
+
         //"find_replaceable_event",
         //"find_parameterized_replaceable_event",
     }

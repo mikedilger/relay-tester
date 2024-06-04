@@ -7,6 +7,7 @@ use std::fmt;
 pub enum Error {
     CannotPost,
     ChannelIsClosed,
+    SubClosed(String),
     General(String),
     Http(http::Error),
     Join(tokio::task::JoinError),
@@ -25,6 +26,7 @@ impl fmt::Display for Error {
         match self {
             Error::CannotPost => write!(f, "Cannot post benign event as registered user"),
             Error::ChannelIsClosed => write!(f, "Channel is closed"),
+            Error::SubClosed(s) => write!(f, "Subscription closed: {}", s),
             Error::General(s) => write!(f, "General: {s}"),
             Error::Http(e) => write!(f, "Http: {e}"),
             Error::Join(e) => write!(f, "Tokio join: {e}"),

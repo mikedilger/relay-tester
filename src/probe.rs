@@ -155,6 +155,11 @@ impl Probe {
                         events.push((*box_event).clone());
                     }
                 }
+                RelayMessage::Closed(sub, msg) => {
+                    if *sub == subscription {
+                        return Err(Error::SubClosed(msg));
+                    }
+                }
                 RelayMessage::Eose(sub) => {
                     if *sub == subscription {
                         return Ok(events);
