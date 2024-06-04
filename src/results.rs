@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 96;
-pub const TESTDEFS: [(bool, &str); 96] = [
+pub const NUMTESTS: usize = 97;
+pub const TESTDEFS: [(bool, &str); 97] = [
     (false, "nip11_provided"),
     (false, "claimed_support_for_nip4"),
     (false, "claimed_support_for_nip9"),
@@ -191,6 +191,7 @@ pub const TESTDEFS: [(bool, &str); 96] = [
     (true, "handles_all_json_escape_codes"),
     (true, "handles_surrogate_pairs"),
     (true, "verifies_signatures"),
+    (true, "verifies_id_hashes"),
     (false, "accepts_invalid_utf8"),
     (false, "accepts_null_characters"),
     (false, "handles_filter_prefixes"),

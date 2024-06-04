@@ -88,7 +88,8 @@ impl Runner {
         }
 
         // Tests that run as the registered user
-        self.test_authenticated_fetches().await;
+        self.test_fetches().await;
+        self.test_event_validation().await;
 
         // TBD
 
@@ -212,6 +213,28 @@ impl Runner {
             Outcome::new(true, None)
         } else {
             Outcome::new(false, Some(reason))
+        };
+        set_outcome_by_name(outcome_name, outcome);
+    }
+
+    async fn post_event(&mut self, event: &Event, outcome_name: &'static str, should_pass: bool) {
+        self.probe.post_event(event).await;
+        let (ok, reason) = match self.probe.wait_for_ok(event.id).await {
+            Ok(data) => data,
+            Err(e) => {
+                set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{}", e))));
+                return;
+            }
+        };
+        let outcome = match (ok, should_pass) {
+            (true, true) | (false, false) => {
+                self.ids_to_fetch.push(event.id);
+                Outcome::new(true, None)
+            }
+            (true, false) => {
+                Outcome::new(false, Some("Accepted but shouldn't have been".to_owned()))
+            }
+            (false, true) => Outcome::new(false, Some(reason)),
         };
         set_outcome_by_name(outcome_name, outcome);
     }

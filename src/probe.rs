@@ -120,6 +120,10 @@ impl Probe {
         event_id
     }
 
+    pub async fn post_event(&self, event: &Event) {
+        self.send(Command::PostEvent(event.to_owned())).await;
+    }
+
     pub async fn post_raw_event(&self, event: &str) {
         self.send(Command::PostRawEvent(event.to_owned())).await;
     }

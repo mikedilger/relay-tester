@@ -3,8 +3,8 @@ use crate::probe::{AuthState, Command};
 use crate::results::{set_outcome_by_name, Outcome};
 use crate::runner::Runner;
 use nostr_types::{
-    EventKind, Filter, IdHex, PreEvent, PrivateKey, PublicKeyHex, RelayMessage, Signer,
-    SubscriptionId, Tag, Unixtime,
+    EventKind, Filter, Id, IdHex, PreEvent, PrivateKey, PublicKeyHex, RelayMessage, Signature,
+    Signer, SubscriptionId, Tag, Unixtime,
 };
 use serde_json::Value;
 use std::ops::{Add, Sub};
@@ -369,7 +369,7 @@ impl Runner {
         Ok(())
     }
 
-    pub async fn test_authenticated_fetches(&mut self) {
+    pub async fn test_fetches(&mut self) {
         if self.ids_to_fetch.is_empty() {
             set_outcome_by_name(
                 "find_by_id",
@@ -446,5 +446,28 @@ impl Runner {
 
         //"find_replaceable_event",
         //"find_parameterized_replaceable_event",
+    }
+
+    pub async fn test_event_validation(&mut self) {
+        // Create event with bad signature
+        let pre_event = PreEvent {
+            pubkey: self.registered_user.public_key(),
+            created_at: Unixtime::now().unwrap(),
+            kind: EventKind::TextNote,
+            tags: vec![],
+            content: "This is a test.".to_owned(),
+        };
+        let mut event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        event.sig = Signature::zeroes();
+        self.post_event(&event, "verifies_signatures", false).await;
+
+        // Create event with bad ID (but good signature of that bad ID)
+        let mut event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        event.id = Id::try_from_hex_string(
+            "cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe",
+        )
+        .unwrap();
+        event.sig = self.registered_user.sign_id(event.id).unwrap();
+        self.post_event(&event, "verifies_id_hashes", false).await;
     }
 }
