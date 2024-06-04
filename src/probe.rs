@@ -55,7 +55,7 @@ pub enum AuthState {
 pub struct Probe {
     pub relay_url: String,
     sender: Sender<Command>,
-    receiver: Receiver<RelayMessage>,
+    receiver: Receiver<String>,
     join_handle: Option<JoinHandle<()>>,
     auth_state: AuthState,
     dup_auth: bool,
@@ -64,7 +64,7 @@ pub struct Probe {
 impl Probe {
     pub fn new(relay_url: String) -> Probe {
         let (to_probe, from_main) = tokio::sync::mpsc::channel::<Command>(100);
-        let (to_main, from_probe) = tokio::sync::mpsc::channel::<RelayMessage>(100);
+        let (to_main, from_probe) = tokio::sync::mpsc::channel::<String>(100);
         let relay_url_thread = relay_url.clone();
         let join_handle = tokio::spawn(async move {
             let mut probe = ProbeInner {
@@ -179,30 +179,33 @@ impl Probe {
         loop {
             let timeout = tokio::time::timeout(Duration::new(1, 0), self.receiver.recv());
             match timeout.await {
-                Ok(Some(output)) => match output {
-                    RelayMessage::Ok(_, _, _) => {
-                        if let Some(rm) = self.process_ok(output).await? {
-                            // It wasn't our auth response, hand it to the caller
-                            return Ok(rm);
-                        } else {
-                            // it was an AUTH response. Listen for the next response.
+                Ok(Some(s)) => {
+                    let output: RelayMessage = serde_json::from_str(&s)?;
+                    match output {
+                        RelayMessage::Ok(_, _, _) => {
+                            if let Some(rm) = self.process_ok(output).await? {
+                                // It wasn't our auth response, hand it to the caller
+                                return Ok(rm);
+                            } else {
+                                // it was an AUTH response. Listen for the next response.
+                                continue;
+                            }
+                        }
+                        RelayMessage::Auth(challenge) => {
+                            match self.auth_state {
+                                AuthState::NotYetRequested => {
+                                    self.auth_state = AuthState::Challenged(challenge);
+                                }
+                                _ => {
+                                    self.dup_auth = true;
+                                }
+                            }
+
+                            // It was an AUTH request. Listen for the next response.
                             continue;
                         }
+                        other => return Ok(other),
                     }
-                    RelayMessage::Auth(challenge) => {
-                        match self.auth_state {
-                            AuthState::NotYetRequested => {
-                                self.auth_state = AuthState::Challenged(challenge);
-                            }
-                            _ => {
-                                self.dup_auth = true;
-                            }
-                        }
-
-                        // It was an AUTH request. Listen for the next response.
-                        continue;
-                    }
-                    other => return Ok(other),
                 },
                 Ok(None) => return Err(Error::ChannelIsClosed),
                 Err(elapsed) => return Err(elapsed.into()),
@@ -287,7 +290,7 @@ impl Probe {
         tokio::time::sleep(delay).await;
 
         let (to_probe, from_main) = tokio::sync::mpsc::channel::<Command>(100);
-        let (to_main, from_probe) = tokio::sync::mpsc::channel::<RelayMessage>(100);
+        let (to_main, from_probe) = tokio::sync::mpsc::channel::<String>(100);
 
         let relay_url_thread = self.relay_url.clone();
         let new_join_handle = tokio::spawn(async move {
@@ -313,7 +316,7 @@ impl Probe {
 #[derive(Debug)]
 pub struct ProbeInner {
     input: Receiver<Command>,
-    output: Sender<RelayMessage>,
+    output: Sender<String>,
 }
 
 impl ProbeInner {
@@ -397,11 +400,7 @@ impl ProbeInner {
 
                     // Take action
                     match message {
-                        Message::Text(s) => {
-                            // Send back to main
-                            let relay_message: RelayMessage = serde_json::from_str(&s)?;
-                            self.output.send(relay_message).await.unwrap();
-                        },
+                        Message::Text(s) => self.output.send(s).await.unwrap(),
                         Message::Binary(_) => { },
                         Message::Ping(_) => { },
                         Message::Pong(_) => { },
