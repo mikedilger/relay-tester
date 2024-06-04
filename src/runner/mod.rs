@@ -1,7 +1,7 @@
 use crate::error::Error;
 use crate::probe::Probe;
 use crate::results::{set_outcome_by_name, Outcome};
-use nostr_types::{Filter, Id, KeySigner, PrivateKey, Signer};
+use nostr_types::{Event, Filter, Id, IdHex, KeySigner, PrivateKey, Signer};
 use secp256k1::hashes::Hash;
 use std::time::Duration;
 
@@ -165,6 +165,31 @@ impl Runner {
         );
 
         (id, raw_event)
+    }
+
+    async fn post_event_and_verify(&mut self, event: &Event) -> Result<(), Error> {
+        let (ok, reason) = self.probe.post_event(&event).await?;
+        if !ok {
+            return Err(Error::EventNotAccepted(reason));
+        }
+
+        let filter = {
+            let mut filter = Filter::new();
+            let idhex: IdHex = event.id.into();
+            filter.add_id(&idhex);
+            filter
+        };
+        let events = self.probe.fetch_events(vec![filter]).await?;
+        if events.len() != 1 {
+            return Err(Error::ExpectedOneEvent(events.len()));
+        }
+        if events[0] != *event {
+            return Err(Error::EventMismatch);
+        }
+
+        self.ids_to_fetch.push(event.id);
+
+        Ok(())
     }
 
     async fn test_fetch_by_filter(

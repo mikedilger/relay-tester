@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 97;
-pub const TESTDEFS: [(bool, &str); 97] = [
+pub const NUMTESTS: usize = 96;
+pub const TESTDEFS: [(bool, &str); 96] = [
     (false, "nip11_provided"),
     (false, "claimed_support_for_nip4"),
     (false, "claimed_support_for_nip9"),
@@ -85,7 +85,6 @@ pub const TESTDEFS: [(bool, &str); 97] = [
     (false, "claimed_support_for_nip96"),
     // Public permission checks
     (false, "public_can_write"),
-    (false, "public_can_read_back"),
     // NIP-01
     (true, "supports_eose"),
     (true, "find_by_id"),
