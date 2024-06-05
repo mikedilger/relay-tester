@@ -1,6 +1,7 @@
 use crate::error::Error;
 use crate::probe::Probe;
 use crate::results::{set_outcome_by_name, Outcome};
+use colorful::{Color, Colorful};
 use nostr_types::{Event, Filter, Id, IdHex, KeySigner, PrivateKey, Signer};
 use secp256k1::hashes::Hash;
 use std::time::Duration;
@@ -68,14 +69,28 @@ impl Runner {
 
     // Tests that run before authenticating
     async fn run_preauth_tests(&mut self) {
+        eprintln!("\n{} -----", "TESTING NIP-11".color(Color::LightBlue));
         self.test_nip11().await;
+
+        eprintln!("\n{} -----", "TESTING AUTH".color(Color::LightBlue));
         self.test_prompts_for_auth_initially().await;
+
+        eprintln!("\n{} -----", "TESTING EOSE".color(Color::LightBlue));
         self.test_supports_eose().await;
+
+        eprintln!(
+            "\n{} ----- ",
+            "TESTING PUBLIC ACCESS".color(Color::LightBlue)
+        );
         self.test_public_access().await;
     }
 
     // Tests that run as the registered user
     async fn run_registered_tests(&mut self) {
+        eprintln!(
+            "\n{} ----- ",
+            "INJECTING EVENTS TO FETCH LATER".color(Color::LightBlue)
+        );
         // Inject events
         let injected = self.injected.clone();
         for event in injected {
@@ -86,20 +101,33 @@ impl Runner {
         }
 
         // Test created_at
+        eprintln!(
+            "\n{} ----- ",
+            "TESTING CREATED_AT VARIATIONS".color(Color::LightBlue)
+        );
         if let Err(e) = self.test_created_at_events().await {
             eprintln!("{}", e);
         }
 
         // Test event validation
+        eprintln!(
+            "\n{} ----- ",
+            "TESTING EVENT VALIDATION".color(Color::LightBlue)
+        );
         self.test_event_validation().await;
 
         // Test JSON edge cases
+        eprintln!(
+            "\n{} ----- ",
+            "TESTING JSON EDGE CASES".color(Color::LightBlue)
+        );
         self.test_event_json_edgecases().await;
     }
 
     // Tests that run as a stranger
     async fn run_stranger_tests(&mut self) {
         // Test fetches (FIXME to use injected events)
+        eprintln!("\n{} ----- ", "TESTING FETCHES".color(Color::LightBlue));
         self.test_fetches().await
     }
 
