@@ -92,6 +92,9 @@ impl Runner {
 
         // Test event validation
         self.test_event_validation().await;
+
+        // Test JSON edge cases
+        self.test_event_json_edgecases().await;
     }
 
     // Tests that run as a stranger

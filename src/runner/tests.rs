@@ -438,4 +438,85 @@ impl Runner {
         };
         set_outcome_by_name("verifies_id_hashes", outcome);
     }
+
+    pub async fn test_event_json_edgecases(&mut self) {
+        // Try including all nip01 escape sequences
+        let (id, raw_event) = Self::create_raw_event(
+            &format!("{}", Unixtime::now().unwrap().0),
+            "1",
+            "[]",
+            r##"linebreak\ndoublequote\"backslash\\carraigereturn\rtab\tbackspace\bformfeed\fend"##,
+            &self.registered_user,
+        )
+        .await;
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_nip1_json_escape_sequences", outcome);
+
+        // Try including escape sequences not listed in nip01
+        let (id, raw_event) = Self::create_raw_event(
+            &format!("{}", Unixtime::now().unwrap().0),
+            "1",
+            "[]",
+            r#"\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007 \u000b \u000e \u000f \u0010\u0011\u0012\u0013\u0014\u0015\u0016 \/"#,
+            &self.registered_user,
+        )
+            .await;
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_unlisted_json_escape_sequences", outcome);
+
+        // Try including all nip01 escape sequences as literals instead of escapes
+        let (id, raw_event) = Self::create_raw_event(
+            &format!("{}", Unixtime::now().unwrap().0),
+            "1",
+            "[]",
+            "linebreak\ndoublequote\"backslash\\carraigereturn\rtab\tbackspace\x08formfeed\x0cend",
+            &self.registered_user,
+        )
+        .await;
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_literals_for_json_escape_sequences", outcome);
+
+        // Try including non-characters such as FDD1 and 1FFFF
+        // &[0xef, 0xb7, 0x91, 0xf4, 0x8f, 0xbf, 0xb2];
+        // https://www.unicode.org/faq/private_use.html#noncharacters
+        let (id, raw_event) = Self::create_raw_event(
+            &format!("{}", Unixtime::now().unwrap().0),
+            "1",
+            "[]",
+            std::str::from_utf8(&[0xef, 0xb7, 0x91, 0xf4, 0x8f, 0xbf, 0xb2]).unwrap(),
+            &self.registered_user,
+        )
+        .await;
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_utf8_non_characters", outcome);
+
+        // NOTE we cant to surrogate pairs in rust strings
+        // NOTE we cannot send to the relay anything that is not valid UTF-8 because
+        // websockets TEXT only takes valid UTF-8.
+        //
+        // invalid escape:
+        //   br#"ab\zc"#
+        // invalid escape:
+        //   is_err(r#"\𝄞"#.as_bytes());
+        // invalid unicode escape
+        //   is_err(r#"\u8g00"#.as_bytes());
+
+        // test duplicated json keys
+    }
 }
