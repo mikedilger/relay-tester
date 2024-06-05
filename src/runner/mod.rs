@@ -72,7 +72,10 @@ impl Runner {
         eprintln!("\n{} -----", "TESTING NIP-11".color(Color::LightBlue));
         self.test_nip11().await;
 
-        eprintln!("\n{} -----", "TESTING AUTH".color(Color::LightBlue));
+        eprintln!(
+            "\n{} -----",
+            "TESTING INITIAL AUTH PROMPT".color(Color::LightBlue)
+        );
         self.test_prompts_for_auth_initially().await;
 
         eprintln!("\n{} -----", "TESTING EOSE".color(Color::LightBlue));
@@ -100,15 +103,6 @@ impl Runner {
             }
         }
 
-        // Test created_at
-        eprintln!(
-            "\n{} ----- ",
-            "TESTING CREATED_AT VARIATIONS".color(Color::LightBlue)
-        );
-        if let Err(e) = self.test_created_at_events().await {
-            eprintln!("{}", e);
-        }
-
         // Test event validation
         eprintln!(
             "\n{} ----- ",
@@ -122,6 +116,19 @@ impl Runner {
             "TESTING JSON EDGE CASES".color(Color::LightBlue)
         );
         self.test_event_json_edgecases().await;
+
+        // Test created_at
+        eprintln!(
+            "\n{} ----- ",
+            "TESTING CREATED_AT VARIATIONS".color(Color::LightBlue)
+        );
+        if let Err(e) = self.test_created_at_events().await {
+            eprintln!("{}", e);
+        }
+
+        // Test misc events
+        eprintln!("\n{} ----- ", "TESTING MISC EVENTS".color(Color::LightBlue));
+        self.test_misc_events().await;
     }
 
     // Tests that run as a stranger

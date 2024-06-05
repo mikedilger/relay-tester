@@ -67,8 +67,9 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 98;
-pub const TESTDEFS: [(bool, &str); 98] = [
+pub const NUMTESTS: usize = 43;
+pub const TESTDEFS: [(bool, &str); 43] = [
+    // NIP-11
     (false, "nip11_provided"),
     (false, "claimed_support_for_nip4"),
     (false, "claimed_support_for_nip9"),
@@ -83,10 +84,45 @@ pub const TESTDEFS: [(bool, &str); 98] = [
     (false, "claimed_support_for_nip65"),
     (false, "claimed_support_for_nip94"),
     (false, "claimed_support_for_nip96"),
-    // Public permission checks
-    (false, "public_can_write"),
-    // NIP-01
+    // INITIAl AUTH PROMPT
+    (false, "prompts_for_auth_initially"),
+    // EOSE
     (true, "supports_eose"),
+    // PUBLIC ACCESS
+    (false, "public_can_write"),
+    // EVENT VALIDATION
+    (true, "verifies_signatures"),
+    (true, "verifies_id_hashes"),
+    // JSON EDGE CASES
+    (true, "accepts_nip1_json_escape_sequences"),
+    (false, "accepts_unlisted_json_escape_sequences"),
+    (false, "accepts_literals_for_json_escape_sequences"),
+    (true, "accepts_utf8_non_characters"),
+    // CREATED_AT VARIATIONS
+    (true, "accepts_events_one_week_old"),
+    (false, "accepts_events_one_month_old"),
+    (false, "accepts_events_one_year_old"),
+    (false, "accepts_events_from_before_nostr"),
+    (false, "accepts_events_from_before_2000"),
+    (false, "accepts_events_from_1970"),
+    (false, "accepts_events_from_before_1970"),
+    (false, "accepts_events_one_year_into_the_future"),
+    (false, "accepts_events_in_the_distant_future"),
+    (
+        false,
+        "accepts_events_with_created_at_greater_than_signed32bit",
+    ),
+    (
+        false,
+        "accepts_events_with_created_at_greater_than_unsigned32bit",
+    ),
+    (
+        false,
+        "accepts_events_with_created_at_in_scientific_notation",
+    ),
+    // MISC EVENTS
+    (false, "accepts_events_with_empty_tags"),
+    // FETCHES
     (true, "find_by_id"),
     (true, "find_by_pubkey_and_kind"),
     (true, "find_by_pubkey_and_tags"),
@@ -94,6 +130,7 @@ pub const TESTDEFS: [(bool, &str); 98] = [
     (true, "find_by_tags"),
     (true, "find_by_pubkey"),
     (true, "find_by_scrape"),
+    /*
     (true, "find_replaceable_event"),
     (true, "find_parameterized_replaceable_event"),
     (true, "replaceable_event_removes_previous"),
@@ -134,7 +171,6 @@ pub const TESTDEFS: [(bool, &str); 98] = [
     // NIP-40 - TBD
 
     // NIP-42 (and auth permission checks)
-    (false, "prompts_for_auth_initially"),
     (false, "can_auth_as_unknown"),
     (false, "unknown_can_write_own"),
     (false, "unknown_can_readback_own"),
@@ -164,43 +200,15 @@ pub const TESTDEFS: [(bool, &str); 98] = [
     (false, "preserves_nonstandard_json_fields"),
     (false, "handles_event_kind_larger_than_16bit"),
     (false, "handles_filter_kind_larger_than_16bit"),
-    // created_at limits
-    (true, "accepts_events_one_week_old"),
-    (false, "accepts_events_one_month_old"),
-    (false, "accepts_events_one_year_old"),
-    (false, "accepts_events_from_before_nostr"),
-    (false, "accepts_events_from_before_2000"),
-    (false, "accepts_events_from_1970"),
-    (false, "accepts_events_from_before_1970"),
-    (false, "accepts_events_one_year_into_the_future"),
-    (false, "accepts_events_in_the_distant_future"),
-    (
-        false,
-        "accepts_events_with_created_at_greater_than_signed32bit",
-    ),
-    (
-        false,
-        "accepts_events_with_created_at_greater_than_unsigned32bit",
-    ),
-    (
-        false,
-        "accepts_events_with_created_at_in_scientific_notation",
-    ),
     (false, "accepts_negative_filter_created_at"),
-    (true, "accepts_nip1_json_escape_sequences"),
-    (false, "accepts_unlisted_json_escape_sequences"),
-    (false, "accepts_literals_for_json_escape_sequences"),
-    (true, "accepts_utf8_non_characters"),
-    (true, "verifies_signatures"),
-    (true, "verifies_id_hashes"),
-    (false, "accepts_invalid_utf8"),
+
     (false, "accepts_null_characters"),
     (false, "handles_filter_prefixes"),
     (false, "keeps_ephemeral_events"),
     (false, "max_subscriptions"),
     (false, "allows_immediate_reconnect"),
     (false, "idle_timeout_if_unsubscribed"),
-    (false, "handles_empty_tags"),
+    */
 ];
 
 pub fn set_outcome_by_name(name: &'static str, outcome: Outcome) {

@@ -519,4 +519,21 @@ impl Runner {
 
         // test duplicated json keys
     }
+
+    pub async fn test_misc_events(&mut self) {
+        let (id, raw_event) = Self::create_raw_event(
+            &format!("{}", Unixtime::now().unwrap().0),
+            "1",
+            "[[],[]]",
+            "this event has two empty tags",
+            &self.registered_user,
+        )
+        .await;
+        let outcome = match self.probe.post_raw_event(&raw_event, id).await {
+            Ok((true, _)) => Outcome::new(true, None),
+            Ok((false, reason)) => Outcome::new(false, Some(reason)),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_events_with_empty_tags", outcome);
+    }
 }
