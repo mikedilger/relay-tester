@@ -88,6 +88,9 @@ pub const TESTDEFS: [(bool, &str); 43] = [
     (false, "prompts_for_auth_initially"),
     // EOSE
     (true, "supports_eose"),
+    // (false, "closes_complete_subscriptions"),
+    // (true, "events_ordered_from_newest_to_oldest"),
+    // (true, "newest_events_when_limited"),
     // PUBLIC ACCESS
     (false, "public_can_write"),
     // EVENT VALIDATION
