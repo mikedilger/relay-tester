@@ -79,7 +79,7 @@ impl Runner {
         self.test_prompts_for_auth_initially().await;
 
         eprintln!("\n{} -----", "TESTING EOSE".color(Color::LightBlue));
-        self.test_supports_eose().await;
+        self.test_eose().await;
 
         eprintln!(
             "\n{} ----- ",

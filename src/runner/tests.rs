@@ -117,7 +117,7 @@ impl Runner {
         set_outcome_by_name("prompts_for_auth_initially", outcome);
     }
 
-    pub async fn test_supports_eose(&mut self) {
+    pub async fn test_eose(&mut self) {
         // A very benign filter.
         let filter = {
             let mut filter = Filter::new();
@@ -136,6 +136,43 @@ impl Runner {
             Err(e) => Outcome::new(false, Some(format!("{}", e))),
         };
         set_outcome_by_name("supports_eose", outcome);
+
+        // A filter to fetch a single event by id (a complete subscription)
+        let filter = {
+            let mut filter = Filter::new();
+            let id = Id::try_from_hex_string(
+                "deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef",
+            )
+            .unwrap();
+            filter.ids = vec![id.into()];
+            filter.kinds = vec![EventKind::TextNote];
+            filter
+        };
+        let outcome = match self.probe.fetch_check_close(vec![filter]).await {
+            Ok(_) => Outcome::new(true, None),
+            Err(Error::Timeout(_)) => Outcome::new(false, None),
+            Err(e) => Outcome::new(false, Some(format!("{}", e))),
+        };
+        set_outcome_by_name("closes_complete_subscriptions_after_eose", outcome);
+
+        // Fetch some events of a single author (an incomplete subscription)
+        let filter = {
+            let mut filter = Filter::new();
+            // Use a random author that should have 0 events
+            let private_key = PrivateKey::generate();
+            let public_key = private_key.public_key();
+            filter.add_author(&public_key.into());
+            filter.add_event_kind(EventKind::TextNote);
+            filter.limit = Some(10);
+            filter.until = Some(Unixtime(1_700_000_000)); // some time in the past
+            filter
+        };
+        let outcome = match self.probe.fetch_check_close(vec![filter]).await {
+            Ok(_) => Outcome::new(false, None),
+            Err(Error::Timeout(_)) => Outcome::new(true, None),
+            Err(e) => Outcome::new(false, Some(format!("{}", e))),
+        };
+        set_outcome_by_name("keeps_open_incomplete_subscriptions_after_eose", outcome);
     }
 
     pub async fn test_public_access(&mut self) {

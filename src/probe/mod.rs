@@ -186,9 +186,8 @@ impl Probe {
         }
     }
 
-    // PRIVATE
-    // Send a command to the inner probe and on to the relay
-    async fn send(&self, command: Command) {
+    /// Send a command to the inner probe and on to the relay
+    pub async fn send(&self, command: Command) {
         self.sender.send(command).await.unwrap()
     }
 
@@ -246,6 +245,33 @@ impl Probe {
                 RelayMessage::Eose(sub) => {
                     if sub == sub_id {
                         return Ok(events);
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    /// Fetch events, but just check if it CLOSED after EOSE.
+    pub async fn fetch_check_close(&mut self, filters: Vec<Filter>) -> Result<bool, Error> {
+        let sub_id = SubscriptionId(format!("sub{}", self.next_sub_id));
+        self.next_sub_id += 1;
+        self.send(Command::FetchEvents(sub_id.clone(), filters))
+            .await;
+        let mut eose: bool = false;
+        loop {
+            let rm = self.wait_for_a_response().await?;
+            match rm {
+                RelayMessage::Closed(sub, _msg) => {
+                    if sub == sub_id {
+                        if eose {
+                            return Ok(true);
+                        }
+                    }
+                }
+                RelayMessage::Eose(sub) => {
+                    if sub == sub_id {
+                        eose = true;
                     }
                 }
                 _ => {}
