@@ -146,11 +146,6 @@ pub const TESTDEFS: [(bool, &str); 47] = [
     //   LIMIT
     (true, "newest_events_when_limited"),
 
-    // (disconnect and reconnect happens here, no longer AUTHed)
-
-    // STRANGER TESTS
-    // --------------
-
     //   FETCHES
     (true, "find_by_id"),
     (true, "find_by_pubkey_and_kind"),
@@ -160,6 +155,10 @@ pub const TESTDEFS: [(bool, &str); 47] = [
     (true, "find_by_pubkey"),
     (true, "find_by_scrape"),
 
+    // (disconnect and reconnect happens here, no longer AUTHed)
+
+    // STRANGER TESTS
+    // --------------
 
     /*
     (true, "find_replaceable_event"),

@@ -136,13 +136,14 @@ impl Runner {
         // Test LIMIT
         eprintln!("\n{} -----", "TESTING LIMIT".color(Color::LightBlue));
         self.test_limit().await;
+
+        // Test fetches (FIXME to use injected events)
+        eprintln!("\n{} ----- ", "TESTING FETCHES".color(Color::LightBlue));
+        self.test_fetches().await
     }
 
     // Tests that run as a stranger
     async fn run_stranger_tests(&mut self) {
-        // Test fetches (FIXME to use injected events)
-        eprintln!("\n{} ----- ", "TESTING FETCHES".color(Color::LightBlue));
-        self.test_fetches().await
     }
 
     pub async fn exit(self) -> Result<(), Error> {
