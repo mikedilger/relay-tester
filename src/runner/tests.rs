@@ -573,4 +573,39 @@ impl Runner {
         };
         set_outcome_by_name("accepts_events_with_empty_tags", outcome);
     }
+
+    pub async fn test_event_order(&mut self) {
+        // Load all injected events by id
+        let ids: Vec<IdHex> = self.injected.iter().map(|event| event.id.into()).collect();
+        let filter = {
+            let mut filter = Filter::new();
+            filter.ids = ids;
+            filter
+        };
+        let outcome = match self.probe.fetch_events(vec![filter]).await {
+            Ok(events) => {
+                if events.len() < 3 {
+                    Outcome::new(
+                        false,
+                        Some("Could not fetch enough events to test.".to_owned()),
+                    )
+                } else {
+                    let mut outcome = Outcome::new(true, None);
+                    let mut last = Unixtime(i64::MAX);
+                    for event in events.iter() {
+                        if event.created_at < last {
+                            last = event.created_at;
+                        } else {
+                            outcome = Outcome::new(false, None);
+                            break;
+                        }
+                    }
+                    outcome
+                }
+            }
+            Err(Error::Timeout(_)) => Outcome::new(false, None),
+            Err(e) => Outcome::new(false, Some(format!("{}", e))),
+        };
+        set_outcome_by_name("events_ordered_from_newest_to_oldest", outcome);
+    }
 }

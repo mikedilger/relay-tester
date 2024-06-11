@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 45;
-pub const TESTDEFS: [(bool, &str); 45] = [
+pub const NUMTESTS: usize = 46;
+pub const TESTDEFS: [(bool, &str); 46] = [
     // NIP-11
     (false, "nip11_provided"),
     (false, "claimed_support_for_nip4"),
@@ -90,7 +90,7 @@ pub const TESTDEFS: [(bool, &str); 45] = [
     (true, "supports_eose"),
     (false, "closes_complete_subscriptions_after_eose"),
     (true, "keeps_open_incomplete_subscriptions_after_eose"),
-    // (true, "events_ordered_from_newest_to_oldest"),
+    (true, "events_ordered_from_newest_to_oldest"),
     // (true, "newest_events_when_limited"),
     // PUBLIC ACCESS
     (false, "public_can_write"),

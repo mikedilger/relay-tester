@@ -129,6 +129,9 @@ impl Runner {
         // Test misc events
         eprintln!("\n{} ----- ", "TESTING MISC EVENTS".color(Color::LightBlue));
         self.test_misc_events().await;
+
+        // Test REQ event order
+        self.test_event_order().await;
     }
 
     // Tests that run as a stranger
