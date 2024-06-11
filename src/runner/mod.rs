@@ -27,7 +27,7 @@ impl Runner {
 
         let registered_user = KeySigner::from_private_key(private_key, "", 8).unwrap();
 
-        let injected = inject::injected_events(&registered_user);
+        let injected = inject::injected_events(&registered_user, &stranger1);
 
         Runner {
             probe,
@@ -132,6 +132,10 @@ impl Runner {
 
         // Test REQ event order
         self.test_event_order().await;
+
+        // Test LIMIT
+        eprintln!("\n{} -----", "TESTING LIMIT".color(Color::LightBlue));
+        self.test_limit().await;
     }
 
     // Tests that run as a stranger

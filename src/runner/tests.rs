@@ -608,4 +608,34 @@ impl Runner {
         };
         set_outcome_by_name("events_ordered_from_newest_to_oldest", outcome);
     }
+
+    pub async fn test_limit(&mut self) {
+        let filter = {
+            let mut filter = Filter::new();
+            filter.authors = vec![
+                self.registered_user.public_key().into(),
+                self.stranger1.public_key().into(),
+            ];
+            filter.add_tag_value('e', self.injected[0].id.as_hex_string());
+            filter.kinds = vec![EventKind::TextNote, EventKind::Reaction];
+            filter.limit = Some(2);
+            filter
+        };
+
+        let outcome = match self.probe.fetch_events(vec![filter]).await {
+            Ok(events) => {
+                if events.len() != 2 {
+                    Outcome::new(false, Some(format!("Got {} events, expected 2", events.len())))
+                } else if events[0].id != self.injected[1].id || events[1].id != self.injected[3].id
+                {
+                    Outcome::new(false, None)
+                } else {
+                    Outcome::new(true, None)
+                }
+            }
+            Err(Error::Timeout(_)) => Outcome::new(false, Some("Timed out".to_owned())),
+            Err(e) => Outcome::new(false, Some(format!("{}", e))),
+        };
+        set_outcome_by_name("newest_events_when_limited", outcome);
+    }
 }

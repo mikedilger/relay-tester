@@ -67,9 +67,12 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 46;
-pub const TESTDEFS: [(bool, &str); 46] = [
-    // NIP-11
+pub const NUMTESTS: usize = 47;
+pub const TESTDEFS: [(bool, &str); 47] = [
+    // PREAUTH TESTS
+    // -------------
+
+    //   NIP-11
     (false, "nip11_provided"),
     (false, "claimed_support_for_nip4"),
     (false, "claimed_support_for_nip9"),
@@ -84,25 +87,34 @@ pub const TESTDEFS: [(bool, &str); 46] = [
     (false, "claimed_support_for_nip65"),
     (false, "claimed_support_for_nip94"),
     (false, "claimed_support_for_nip96"),
-    // INITIAl AUTH PROMPT
+
+    //   PROMPTS FOR AUTH INITIALLY
     (false, "prompts_for_auth_initially"),
-    // EOSE
+
+    //   EOSE
     (true, "supports_eose"),
     (false, "closes_complete_subscriptions_after_eose"),
     (true, "keeps_open_incomplete_subscriptions_after_eose"),
-    (true, "events_ordered_from_newest_to_oldest"),
-    // (true, "newest_events_when_limited"),
-    // PUBLIC ACCESS
+
+    //   PUBLIC ACCESS
     (false, "public_can_write"),
-    // EVENT VALIDATION
+
+    // (injection happens here)
+
+    // REGISTERED TESTS
+    // ----------------
+
+    //   EVENT VALIDATION
     (true, "verifies_signatures"),
     (true, "verifies_id_hashes"),
-    // JSON EDGE CASES
+
+    //   JSON EDGE CASES
     (true, "accepts_nip1_json_escape_sequences"),
     (false, "accepts_unlisted_json_escape_sequences"),
     (false, "accepts_literals_for_json_escape_sequences"),
     (true, "accepts_utf8_non_characters"),
-    // CREATED_AT VARIATIONS
+
+    //   CREATED_AT VARIATIONS
     (true, "accepts_events_one_week_old"),
     (false, "accepts_events_one_month_old"),
     (false, "accepts_events_one_year_old"),
@@ -124,9 +136,22 @@ pub const TESTDEFS: [(bool, &str); 46] = [
         false,
         "accepts_events_with_created_at_in_scientific_notation",
     ),
-    // MISC EVENTS
+
+    //   MISC EVENTS
     (false, "accepts_events_with_empty_tags"),
-    // FETCHES
+
+    //   EVENT ORDER
+    (true, "events_ordered_from_newest_to_oldest"),
+
+    //   LIMIT
+    (true, "newest_events_when_limited"),
+
+    // (disconnect and reconnect happens here, no longer AUTHed)
+
+    // STRANGER TESTS
+    // --------------
+
+    //   FETCHES
     (true, "find_by_id"),
     (true, "find_by_pubkey_and_kind"),
     (true, "find_by_pubkey_and_tags"),
@@ -134,6 +159,8 @@ pub const TESTDEFS: [(bool, &str); 46] = [
     (true, "find_by_tags"),
     (true, "find_by_pubkey"),
     (true, "find_by_scrape"),
+
+
     /*
     (true, "find_replaceable_event"),
     (true, "find_parameterized_replaceable_event"),
