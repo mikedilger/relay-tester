@@ -614,9 +614,9 @@ impl Runner {
             let mut filter = Filter::new();
             filter.authors = vec![
                 self.registered_user.public_key().into(),
-                self.stranger1.public_key().into(),
             ];
-            filter.add_tag_value('e', self.injected[0].id.as_hex_string());
+            filter.add_tag_value('t', "a".to_string());
+            filter.add_tag_value('t', "b".to_string());
             filter.kinds = vec![EventKind::TextNote, EventKind::Reaction];
             filter.limit = Some(2);
             filter

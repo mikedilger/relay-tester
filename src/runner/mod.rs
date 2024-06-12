@@ -27,7 +27,7 @@ impl Runner {
 
         let registered_user = KeySigner::from_private_key(private_key, "", 8).unwrap();
 
-        let injected = inject::injected_events(&registered_user, &stranger1);
+        let injected = inject::injected_events(&registered_user);
 
         Runner {
             probe,
