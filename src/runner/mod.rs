@@ -4,16 +4,18 @@ use crate::results::{set_outcome_by_name, Outcome};
 use colorful::{Color, Colorful};
 use nostr_types::{Event, Filter, Id, IdHex, KeySigner, PrivateKey, Signer};
 use secp256k1::hashes::Hash;
+use std::collections::HashMap;
 use std::time::Duration;
 
-mod inject;
+mod events;
 mod tests;
+
 
 pub struct Runner {
     probe: Probe,
     stranger1: KeySigner,
     registered_user: KeySigner,
-    injected: Vec<Event>,
+    event_group_a: HashMap<&'static str, Event>,
 }
 
 impl Runner {
@@ -27,13 +29,13 @@ impl Runner {
 
         let registered_user = KeySigner::from_private_key(private_key, "", 8).unwrap();
 
-        let injected = inject::injected_events(&registered_user);
+        let event_group_a = events::build_event_group_a(&registered_user);
 
         Runner {
             probe,
             stranger1,
             registered_user,
-            injected,
+            event_group_a,
         }
     }
 
@@ -51,7 +53,9 @@ impl Runner {
             return;
         }
 
-        self.run_registered_tests().await;
+        if let Err(e) = self.run_registered_tests().await {
+            eprintln!("{}", e);
+        }
 
         // Disconnect and authenticate as stranger
         if self.probe.reconnect(Duration::new(1, 0)).await.is_err() {
@@ -89,17 +93,16 @@ impl Runner {
     }
 
     // Tests that run as the registered user
-    async fn run_registered_tests(&mut self) {
+    async fn run_registered_tests(&mut self) -> Result<(), Error> {
         eprintln!(
             "\n{} ----- ",
-            "INJECTING EVENTS TO FETCH LATER".color(Color::LightBlue)
+            "INJECTING EVENT GROUP A".color(Color::LightBlue)
         );
-        // Inject events
-        let injected = self.injected.clone();
-        for event in injected {
-            if let Err(e) = self.post_event_and_verify(&event).await {
-                eprintln!("Cannot inject benign events: {e}\nCannot continue testing.");
-                return;
+
+        for (_name, refevent) in &self.event_group_a {
+            let (ok, reason) = self.probe.post_event(refevent).await?;
+            if !ok {
+                return Err(Error::EventNotAccepted(reason));
             }
         }
 
@@ -139,7 +142,9 @@ impl Runner {
 
         // Test fetches (FIXME to use injected events)
         eprintln!("\n{} ----- ", "TESTING FETCHES".color(Color::LightBlue));
-        self.test_fetches().await
+        self.test_fetches().await;
+
+        Ok(())
     }
 
     // Tests that run as a stranger

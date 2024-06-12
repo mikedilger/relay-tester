@@ -360,7 +360,7 @@ impl Runner {
     }
 
     pub async fn test_fetches(&mut self) {
-        let ids: Vec<IdHex> = self.injected.iter().map(|event| event.id.into()).collect();
+        let ids: Vec<IdHex> = self.event_group_a.iter().map(|(_,e)| e.id.into()).collect();
         if ids.is_empty() {
             set_outcome_by_name(
                 "find_by_id",
@@ -576,7 +576,7 @@ impl Runner {
 
     pub async fn test_event_order(&mut self) {
         // Load all injected events by id
-        let ids: Vec<IdHex> = self.injected.iter().map(|event| event.id.into()).collect();
+        let ids: Vec<IdHex> = self.event_group_a.iter().map(|(_,e)| e.id.into()).collect();
         let filter = {
             let mut filter = Filter::new();
             filter.ids = ids;
@@ -622,11 +622,14 @@ impl Runner {
             filter
         };
 
+        let limit_test_first = self.event_group_a.get("limit_test_first").unwrap();
+        let limit_test_second = self.event_group_a.get("limit_test_second").unwrap();
+
         let outcome = match self.probe.fetch_events(vec![filter]).await {
             Ok(events) => {
                 if events.len() != 2 {
                     Outcome::new(false, Some(format!("Got {} events, expected 2", events.len())))
-                } else if events[0].id != self.injected[1].id || events[1].id != self.injected[3].id
+                } else if events[0].id != limit_test_first.id || events[1].id != limit_test_second.id
                 {
                     Outcome::new(false, None)
                 } else {
