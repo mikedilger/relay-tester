@@ -4,7 +4,8 @@ use inner::ProbeInner;
 use crate::error::Error;
 use http::Uri;
 use nostr_types::{
-    Event, EventKind, Filter, Id, PreEvent, RelayMessage, Signer, SubscriptionId, Tag, Unixtime,
+    Event, EventKind, Filter, Id, IdHex, PreEvent, RelayMessage, Signer, SubscriptionId, Tag,
+    Unixtime,
 };
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -204,6 +205,30 @@ impl Probe {
         }
     }
 
+    /// Post an event and verify it can be fetched back by id
+    pub async fn post_event_and_verify(&mut self, event: &Event) -> Result<(), Error> {
+        let (ok, reason) = self.post_event(&event).await?;
+        if !ok {
+            return Err(Error::EventNotAccepted(reason));
+        }
+
+        let filter = {
+            let mut filter = Filter::new();
+            let idhex: IdHex = event.id.into();
+            filter.add_id(&idhex);
+            filter
+        };
+        let events = self.fetch_events(vec![filter]).await?;
+        if events.len() != 1 {
+            return Err(Error::ExpectedOneEvent(events.len()));
+        }
+        if events[0] != *event {
+            return Err(Error::EventMismatch);
+        }
+
+        Ok(())
+    }
+
     /// Post a raw event
     pub async fn post_raw_event(
         &mut self,
@@ -333,5 +358,39 @@ impl Probe {
                 "process_ok() called with the wrong kind of RelayMessage".to_owned(),
             )),
         }
+    }
+
+    pub async fn fetch_nip11(&self) -> Result<serde_json::Value, Error> {
+        use reqwest::redirect::Policy;
+        use reqwest::Client;
+        use std::time::Duration;
+
+        let (host, uri) = crate::probe::url_to_host_and_uri(&self.relay_url);
+        let scheme = match uri.scheme() {
+            Some(refscheme) => match refscheme.as_str() {
+                "wss" => "https",
+                "ws" => "http",
+                u => panic!("Unknown scheme {}", u),
+            },
+            None => panic!("Relay URL has no scheme."),
+        };
+
+        let url = format!("{}://{}{}", scheme, host, uri.path());
+
+        let client = Client::builder()
+            .redirect(Policy::none())
+            .connect_timeout(Duration::from_secs(60))
+            .timeout(Duration::from_secs(60))
+            .connection_verbose(true)
+            .build()?;
+        let response = client
+            .get(url)
+            .header("Host", host)
+            .header("Accept", "application/nostr+json")
+            .send()
+            .await?;
+        let json = response.text().await?;
+        let value: serde_json::Value = serde_json::from_str(&json)?;
+        Ok(value)
     }
 }

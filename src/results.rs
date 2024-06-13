@@ -87,18 +87,14 @@ pub const TESTDEFS: [(bool, &str); 47] = [
     (false, "claimed_support_for_nip65"),
     (false, "claimed_support_for_nip94"),
     (false, "claimed_support_for_nip96"),
-
     //   PROMPTS FOR AUTH INITIALLY
     (false, "prompts_for_auth_initially"),
-
     //   EOSE
     (true, "supports_eose"),
     (false, "closes_complete_subscriptions_after_eose"),
     (true, "keeps_open_incomplete_subscriptions_after_eose"),
-
     //   PUBLIC ACCESS
     (false, "public_can_write"),
-
     // (injection happens here)
 
     // REGISTERED TESTS
@@ -107,13 +103,11 @@ pub const TESTDEFS: [(bool, &str); 47] = [
     //   EVENT VALIDATION
     (true, "verifies_signatures"),
     (true, "verifies_id_hashes"),
-
     //   JSON EDGE CASES
     (true, "accepts_nip1_json_escape_sequences"),
     (false, "accepts_unlisted_json_escape_sequences"),
     (false, "accepts_literals_for_json_escape_sequences"),
     (true, "accepts_utf8_non_characters"),
-
     //   CREATED_AT VARIATIONS
     (true, "accepts_events_one_week_old"),
     (false, "accepts_events_one_month_old"),
@@ -136,16 +130,12 @@ pub const TESTDEFS: [(bool, &str); 47] = [
         false,
         "accepts_events_with_created_at_in_scientific_notation",
     ),
-
     //   MISC EVENTS
     (false, "accepts_events_with_empty_tags"),
-
     //   EVENT ORDER
     (true, "events_ordered_from_newest_to_oldest"),
-
     //   LIMIT
     (true, "newest_events_when_limited"),
-
     //   FETCHES
     (true, "find_by_id"),
     (true, "find_by_pubkey_and_kind"),
@@ -154,7 +144,6 @@ pub const TESTDEFS: [(bool, &str); 47] = [
     (true, "find_by_tags"),
     (true, "find_by_pubkey"),
     (true, "find_by_scrape"),
-
     // (disconnect and reconnect happens here, no longer AUTHed)
 
     // STRANGER TESTS

@@ -13,8 +13,18 @@ const GROUP_A: [(&str, u64, EventKind, &[&[&str]]); 11] = [
     ("contactlist_newer", 10, EventKind::ContactList, &[]),
     ("contactlist_older", 70, EventKind::ContactList, &[]),
     ("ephemeral", 10, EventKind::Ephemeral(21212), &[]),
-    ("older_param_replaceable", 120, EventKind::FollowSets, &[&["d","1"]]),
-    ("newer_param_replaceable", 60, EventKind::FollowSets, &[&["d","1"]]),
+    (
+        "older_param_replaceable",
+        120,
+        EventKind::FollowSets,
+        &[&["d", "1"]],
+    ),
+    (
+        "newer_param_replaceable",
+        60,
+        EventKind::FollowSets,
+        &[&["d", "1"]],
+    ),
 ];
 
 pub fn build_event_group_a(user: &dyn Signer) -> HashMap<&'static str, Event> {
@@ -23,11 +33,9 @@ pub fn build_event_group_a(user: &dyn Signer) -> HashMap<&'static str, Event> {
     for (s, m, k, t) in GROUP_A.iter() {
         let mut tags: Vec<Tag> = Vec::new();
         for tin in t.iter() {
-            tags.push(
-                Tag::from_strings(
-                    tin.iter().map(|s| (*s).to_owned()).collect()
-                )
-            );
+            tags.push(Tag::from_strings(
+                tin.iter().map(|s| (*s).to_owned()).collect(),
+            ));
         }
 
         let pre_event = PreEvent {

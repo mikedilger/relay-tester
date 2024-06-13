@@ -2,14 +2,13 @@ use crate::error::Error;
 use crate::probe::Probe;
 use crate::results::{set_outcome_by_name, Outcome};
 use colorful::{Color, Colorful};
-use nostr_types::{Event, Filter, Id, IdHex, KeySigner, PrivateKey, Signer};
+use nostr_types::{Event, Filter, Id, KeySigner, PrivateKey, Signer};
 use secp256k1::hashes::Hash;
 use std::collections::HashMap;
 use std::time::Duration;
 
 mod events;
 mod tests;
-
 
 pub struct Runner {
     probe: Probe,
@@ -40,6 +39,7 @@ impl Runner {
     }
 
     pub async fn run(&mut self) {
+        // Phase 1:  Pre-Auth
         self.run_preauth_tests().await;
 
         // Authenticate as the registered user
@@ -53,6 +53,7 @@ impl Runner {
             return;
         }
 
+        // Phase 2: Authenticated
         if let Err(e) = self.run_registered_tests().await {
             eprintln!("{}", e);
         }
@@ -68,6 +69,7 @@ impl Runner {
             return;
         }
 
+        // Phase 3: Authenticated as an unrecognized user
         self.run_stranger_tests().await;
     }
 
@@ -148,46 +150,11 @@ impl Runner {
     }
 
     // Tests that run as a stranger
-    async fn run_stranger_tests(&mut self) {
-    }
+    async fn run_stranger_tests(&mut self) {}
 
     pub async fn exit(self) -> Result<(), Error> {
         self.probe.exit().await?;
         Ok(())
-    }
-
-    async fn fetch_nip11(&mut self) -> Result<serde_json::Value, Error> {
-        use reqwest::redirect::Policy;
-        use reqwest::Client;
-        use std::time::Duration;
-
-        let (host, uri) = crate::probe::url_to_host_and_uri(&self.probe.relay_url);
-        let scheme = match uri.scheme() {
-            Some(refscheme) => match refscheme.as_str() {
-                "wss" => "https",
-                "ws" => "http",
-                u => panic!("Unknown scheme {}", u),
-            },
-            None => panic!("Relay URL has no scheme."),
-        };
-
-        let url = format!("{}://{}{}", scheme, host, uri.path());
-
-        let client = Client::builder()
-            .redirect(Policy::none())
-            .connect_timeout(Duration::from_secs(60))
-            .timeout(Duration::from_secs(60))
-            .connection_verbose(true)
-            .build()?;
-        let response = client
-            .get(url)
-            .header("Host", host)
-            .header("Accept", "application/nostr+json")
-            .send()
-            .await?;
-        let json = response.text().await?;
-        let value: serde_json::Value = serde_json::from_str(&json)?;
-        Ok(value)
     }
 
     async fn create_raw_event(
@@ -222,29 +189,6 @@ impl Runner {
         );
 
         (id, raw_event)
-    }
-
-    async fn post_event_and_verify(&mut self, event: &Event) -> Result<(), Error> {
-        let (ok, reason) = self.probe.post_event(&event).await?;
-        if !ok {
-            return Err(Error::EventNotAccepted(reason));
-        }
-
-        let filter = {
-            let mut filter = Filter::new();
-            let idhex: IdHex = event.id.into();
-            filter.add_id(&idhex);
-            filter
-        };
-        let events = self.probe.fetch_events(vec![filter]).await?;
-        if events.len() != 1 {
-            return Err(Error::ExpectedOneEvent(events.len()));
-        }
-        if events[0] != *event {
-            return Err(Error::EventMismatch);
-        }
-
-        Ok(())
     }
 
     async fn test_fetch_by_filter(

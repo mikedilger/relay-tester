@@ -28,7 +28,7 @@ impl Runner {
             set_outcome_by_name("claimed_support_for_nip96", outcome.clone());
         };
 
-        let nip11 = match self.fetch_nip11().await {
+        let nip11 = match self.probe.fetch_nip11().await {
             Ok(nip11) => nip11,
             Err(e) => {
                 let outcome = Outcome::new(false, Some(format!("{}", e)));
@@ -187,7 +187,7 @@ impl Runner {
             self.stranger1.sign_event(pre).unwrap()
         };
 
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -205,14 +205,14 @@ impl Runner {
 
         // now (to verify we can post, not recorded as a test outcome)
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        if let Err(_) = self.post_event_and_verify(&event).await {
+        if let Err(_) = self.probe.post_event_and_verify(&event).await {
             return Err(Error::CannotPost);
         }
 
         // 1 week ago
         pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 7, 0));
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -223,7 +223,7 @@ impl Runner {
             .unwrap()
             .sub(Duration::new(86400 * 7 * 4, 0));
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -232,7 +232,7 @@ impl Runner {
         // 1 year ago
         pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 365, 0));
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -241,7 +241,7 @@ impl Runner {
         // 2015
         pre_event.created_at = Unixtime(1420070461); // Thursday, January 1, 2015 12:01:01 AM GMT
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -250,7 +250,7 @@ impl Runner {
         // 1999
         pre_event.created_at = Unixtime(915148861); // Friday, January 1, 1999 12:01:01 AM
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -259,7 +259,7 @@ impl Runner {
         // 1970
         pre_event.created_at = Unixtime(0); // Thursday, January 1, 1970 12:00:00 AM
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -284,7 +284,7 @@ impl Runner {
         // 1 year hence
         pre_event.created_at = Unixtime::now().unwrap().add(Duration::new(86400 * 365, 0));
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -293,7 +293,7 @@ impl Runner {
         // distant future
         pre_event.created_at = Unixtime(i64::MAX);
         let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
-        let outcome = match self.post_event_and_verify(&event).await {
+        let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
@@ -360,7 +360,11 @@ impl Runner {
     }
 
     pub async fn test_fetches(&mut self) {
-        let ids: Vec<IdHex> = self.event_group_a.iter().map(|(_,e)| e.id.into()).collect();
+        let ids: Vec<IdHex> = self
+            .event_group_a
+            .iter()
+            .map(|(_, e)| e.id.into())
+            .collect();
         if ids.is_empty() {
             set_outcome_by_name(
                 "find_by_id",
@@ -576,7 +580,11 @@ impl Runner {
 
     pub async fn test_event_order(&mut self) {
         // Load all injected events by id
-        let ids: Vec<IdHex> = self.event_group_a.iter().map(|(_,e)| e.id.into()).collect();
+        let ids: Vec<IdHex> = self
+            .event_group_a
+            .iter()
+            .map(|(_, e)| e.id.into())
+            .collect();
         let filter = {
             let mut filter = Filter::new();
             filter.ids = ids;
@@ -612,9 +620,7 @@ impl Runner {
     pub async fn test_limit(&mut self) {
         let filter = {
             let mut filter = Filter::new();
-            filter.authors = vec![
-                self.registered_user.public_key().into(),
-            ];
+            filter.authors = vec![self.registered_user.public_key().into()];
             filter.add_tag_value('t', "a".to_string());
             filter.add_tag_value('t', "b".to_string());
             filter.kinds = vec![EventKind::TextNote, EventKind::Reaction];
@@ -628,8 +634,12 @@ impl Runner {
         let outcome = match self.probe.fetch_events(vec![filter]).await {
             Ok(events) => {
                 if events.len() != 2 {
-                    Outcome::new(false, Some(format!("Got {} events, expected 2", events.len())))
-                } else if events[0].id != limit_test_first.id || events[1].id != limit_test_second.id
+                    Outcome::new(
+                        false,
+                        Some(format!("Got {} events, expected 2", events.len())),
+                    )
+                } else if events[0].id != limit_test_first.id
+                    || events[1].id != limit_test_second.id
                 {
                     Outcome::new(false, None)
                 } else {
