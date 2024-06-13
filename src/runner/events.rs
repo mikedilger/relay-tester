@@ -3,6 +3,24 @@ use std::collections::HashMap;
 use std::ops::Sub;
 use std::time::Duration;
 
+pub fn build_event(user: &dyn Signer, minutes_ago: u64, kind: EventKind, intags: &[&[&str]]) -> Event {
+    let mut tags: Vec<Tag> = Vec::new();
+    for tin in intags.iter() {
+        tags.push(Tag::from_strings(
+            tin.iter().map(|s| (*s).to_owned()).collect(),
+        ));
+    }
+    let pre_event = PreEvent {
+        pubkey: user.public_key(),
+        created_at: Unixtime::now().unwrap().sub(Duration::new(minutes_ago * 60, 0)),
+        kind,
+        tags,
+        content: "This is a test.".to_owned(),
+    };
+    let event = user.sign_event(pre_event).unwrap();
+    event
+}
+
 const GROUP_A: [(&str, u64, EventKind, &[&[&str]]); 11] = [
     ("limit_test_first", 40, EventKind::TextNote, &[]),
     ("limit_test_third", 50, EventKind::TextNote, &[]),
@@ -29,25 +47,8 @@ const GROUP_A: [(&str, u64, EventKind, &[&[&str]]); 11] = [
 
 pub fn build_event_group_a(user: &dyn Signer) -> HashMap<&'static str, Event> {
     let mut map: HashMap<&'static str, Event> = HashMap::new();
-
     for (s, m, k, t) in GROUP_A.iter() {
-        let mut tags: Vec<Tag> = Vec::new();
-        for tin in t.iter() {
-            tags.push(Tag::from_strings(
-                tin.iter().map(|s| (*s).to_owned()).collect(),
-            ));
-        }
-
-        let pre_event = PreEvent {
-            pubkey: user.public_key(),
-            created_at: Unixtime::now().unwrap().sub(Duration::new(m * 60, 0)),
-            kind: *k,
-            tags,
-            content: "This is a test.".to_owned(),
-        };
-        let event = user.sign_event(pre_event).unwrap();
-        map.insert(s, event);
+        map.insert(s, build_event(user, *m, *k, *t));
     }
-
     map
 }

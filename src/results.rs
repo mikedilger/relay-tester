@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 47;
-pub const TESTDEFS: [(bool, &str); 47] = [
+pub const NUMTESTS: usize = 50;
+pub const TESTDEFS: [(bool, &str); 50] = [
     // PREAUTH TESTS
     // -------------
 
@@ -144,6 +144,11 @@ pub const TESTDEFS: [(bool, &str); 47] = [
     (true, "find_by_tags"),
     (true, "find_by_pubkey"),
     (true, "find_by_scrape"),
+    //   REPLACEABLES
+    (true, "accepts_metadata"),
+    (true, "replaces_metadata"),
+    (false, "replaced_events_still_available_by_id"),
+
     // (disconnect and reconnect happens here, no longer AUTHed)
 
     // STRANGER TESTS

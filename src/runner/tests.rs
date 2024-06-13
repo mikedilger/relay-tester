@@ -651,4 +651,53 @@ impl Runner {
         };
         set_outcome_by_name("newest_events_when_limited", outcome);
     }
+
+    pub async fn test_replaceables(&mut self) -> Result<(), Error> {
+        let metadata_older = self.event_group_a.get("metadata_older").unwrap();
+        let metadata_newer = self.event_group_a.get("metadata_newer").unwrap();
+
+        let metadata_events = self.probe.get_replaceables(metadata_older.pubkey, metadata_older.kind).await?;
+        match metadata_events.len() {
+            0 => {
+                set_outcome_by_name("accepts_metadata", Outcome::new(false, None));
+                set_outcome_by_name("replaces_metadata", Outcome::new(false, Some("does not accept it".to_owned())));
+            },
+            1 => {
+                set_outcome_by_name("accepts_metadata", Outcome::new(true, None));
+                if metadata_events[0].id == metadata_newer.id {
+                    set_outcome_by_name("replaces_metadata", Outcome::new(true, None));
+                } else {
+                    set_outcome_by_name("replaces_metadata", Outcome::new(false, Some("The newest metadata was not returned".to_owned())));
+                }
+            },
+            _ => {
+                set_outcome_by_name("accepts_metadata", Outcome::new(true, None));
+                set_outcome_by_name("replaces_metadata", Outcome::new(false, Some("returns multiple events in replacement group".to_owned())));
+            },
+        };
+
+        // Check of older metadata event still exists under it's ID (this is ok)
+        set_outcome_by_name(
+            "replaced_events_still_available_by_id",
+            Outcome::new(self.probe.check_exists(metadata_older.id).await?, None)
+        );
+
+
+//        let contactlist_older = self.event_group_a.get("contactlist_older").unwrap();
+//        let contactlist_newer = self.event_group_a.get("contactlist_newer").unwrap();
+//        let ephemeral = self.event_group_a.get("ephemeral").unwrap();
+
+        /* verify exists and not exists
+        let filter = {
+            let mut filter = Filter::new();
+            filter.add_id(
+            filter
+        };
+        self.probe.fetch_events(filter)
+         */
+
+        Ok(())
+    }
+
+    // TBD: Test ephemeral again with a 2nd probe subscribed to see if it shows up when posted
 }

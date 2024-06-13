@@ -39,42 +39,52 @@ impl Runner {
     }
 
     pub async fn run(&mut self) {
+        let mut errors: Vec<Error> = Vec::new();
+
         // Phase 1:  Pre-Auth
-        self.run_preauth_tests().await;
+        if let Err(e) = self.run_preauth_tests().await {
+            errors.push(e);
+        }
 
         // Authenticate as the registered user
-        if self
+        if let Err(e) = self
             .probe
             .authenticate(&self.registered_user)
             .await
-            .is_err()
         {
-            eprintln!("Cannot authenticate. Cannot continue testing.");
-            return;
+            errors.push(e);
         }
 
         // Phase 2: Authenticated
         if let Err(e) = self.run_registered_tests().await {
-            eprintln!("{}", e);
+            errors.push(e);
         }
 
         // Disconnect and authenticate as stranger
-        if self.probe.reconnect(Duration::new(1, 0)).await.is_err() {
-            eprintln!("Cannot disconnect/reconnect. Cannot continue testing.");
-            return;
+        if let Err(e) = self.probe.reconnect(Duration::new(1, 0)).await {
+            errors.push(e);
         }
 
-        if self.probe.authenticate(&self.stranger1).await.is_err() {
-            eprintln!("Cannot authenticate. Cannot continue testing.");
-            return;
+        if let Err(e) = self.probe.authenticate(&self.stranger1).await {
+            errors.push(e);
         }
 
         // Phase 3: Authenticated as an unrecognized user
-        self.run_stranger_tests().await;
+        if let Err(e) = self.run_stranger_tests().await {
+            errors.push(e);
+        }
+
+        if !errors.is_empty() {
+            eprintln!("\n\nERRORS ---------------------------------");
+            for err in &errors {
+                eprintln!("{}", err);
+            }
+            eprintln!("\n----------------------------------------");
+        }
     }
 
     // Tests that run before authenticating
-    async fn run_preauth_tests(&mut self) {
+    async fn run_preauth_tests(&mut self) -> Result<(), Error> {
         eprintln!("\n{} -----", "TESTING NIP-11".color(Color::LightBlue));
         self.test_nip11().await;
 
@@ -92,6 +102,8 @@ impl Runner {
             "TESTING PUBLIC ACCESS".color(Color::LightBlue)
         );
         self.test_public_access().await;
+
+        Ok(())
     }
 
     // Tests that run as the registered user
@@ -102,10 +114,9 @@ impl Runner {
         );
 
         for (_name, refevent) in &self.event_group_a {
-            let (ok, reason) = self.probe.post_event(refevent).await?;
-            if !ok {
-                return Err(Error::EventNotAccepted(reason));
-            }
+            let _ = self.probe.post_event(refevent).await?;
+            // Ignore relay response; some relays may reject older replaced events
+            // with ok=false. We will notice that the event is not there.
         }
 
         // Test event validation
@@ -127,9 +138,7 @@ impl Runner {
             "\n{} ----- ",
             "TESTING CREATED_AT VARIATIONS".color(Color::LightBlue)
         );
-        if let Err(e) = self.test_created_at_events().await {
-            eprintln!("{}", e);
-        }
+        self.test_created_at_events().await?;
 
         // Test misc events
         eprintln!("\n{} ----- ", "TESTING MISC EVENTS".color(Color::LightBlue));
@@ -146,11 +155,17 @@ impl Runner {
         eprintln!("\n{} ----- ", "TESTING FETCHES".color(Color::LightBlue));
         self.test_fetches().await;
 
+        // Test replaceables
+        eprintln!("\n{} ----- ", "TESTING REPLACEABLES".color(Color::LightBlue));
+        self.test_replaceables().await?;
+
         Ok(())
     }
 
     // Tests that run as a stranger
-    async fn run_stranger_tests(&mut self) {}
+    async fn run_stranger_tests(&mut self) -> Result<(), Error> {
+        Ok(())
+    }
 
     pub async fn exit(self) -> Result<(), Error> {
         self.probe.exit().await?;

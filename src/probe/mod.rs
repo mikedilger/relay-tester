@@ -4,7 +4,7 @@ use inner::ProbeInner;
 use crate::error::Error;
 use http::Uri;
 use nostr_types::{
-    Event, EventKind, Filter, Id, IdHex, PreEvent, RelayMessage, Signer, SubscriptionId, Tag,
+    Event, EventKind, Filter, Id, IdHex, PreEvent, PublicKey, PublicKeyHex, RelayMessage, Signer, SubscriptionId, Tag,
     Unixtime,
 };
 use std::time::Duration;
@@ -227,6 +227,33 @@ impl Probe {
         }
 
         Ok(())
+    }
+
+    pub async fn check_exists(&mut self, id: Id) -> Result<bool, Error> {
+        let filter = {
+            let mut filter = Filter::new();
+            let idhex: IdHex = id.into();
+            filter.add_id(&idhex);
+            filter
+        };
+        let events = self.fetch_events(vec![filter]).await?;
+        if events.len() == 1 && events[0].id == id {
+            Ok(true)
+        } else {
+            Ok(false)
+        }
+    }
+
+    pub async fn get_replaceables(&mut self, author: PublicKey, kind: EventKind) -> Result<Vec<Event>, Error> {
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = author.into();
+            filter.add_author(&pkh);
+            filter.add_event_kind(kind);
+            filter
+        };
+        let events = self.fetch_events(vec![filter]).await?;
+        Ok(events)
     }
 
     /// Post a raw event
