@@ -668,7 +668,7 @@ impl Runner {
         set_outcome_by_name("newest_events_when_limited", outcome);
     }
 
-    pub async fn test_replaceables(&mut self) -> Result<(), Error> {
+    pub async fn test_replaceables_basic(&mut self) -> Result<(), Error> {
         let metadata_older = self.event_group_a.get("metadata_older").unwrap();
         let metadata_newer = self.event_group_a.get("metadata_newer").unwrap();
 
@@ -716,21 +716,51 @@ impl Runner {
             Outcome::new(self.probe.check_exists(metadata_older.id).await?, None),
         );
 
-        //        let contactlist_older = self.event_group_a.get("contactlist_older").unwrap();
-        //        let contactlist_newer = self.event_group_a.get("contactlist_newer").unwrap();
-        //        let ephemeral = self.event_group_a.get("ephemeral").unwrap();
+        let contactlist_older = self.event_group_a.get("contactlist_older").unwrap();
+        let contactlist_newer = self.event_group_a.get("contactlist_newer").unwrap();
 
-        /* verify exists and not exists
-        let filter = {
-            let mut filter = Filter::new();
-            filter.add_id(
-            filter
+        let contactlist_events = self
+            .probe
+            .get_replaceables(contactlist_older.pubkey, contactlist_older.kind)
+            .await?;
+
+        match contactlist_events.len() {
+            0 => {
+                set_outcome_by_name("accepts_contactlist", Outcome::new(false, None));
+                set_outcome_by_name(
+                    "replaces_contactlist",
+                    Outcome::new(false, Some("does not accept it".to_owned())),
+                );
+            }
+            1 => {
+                set_outcome_by_name("accepts_contactlist", Outcome::new(true, None));
+                if contactlist_events[0].id == contactlist_newer.id {
+                    set_outcome_by_name("replaces_contactlist", Outcome::new(true, None));
+                } else {
+                    set_outcome_by_name(
+                        "replaces_contactlist",
+                        Outcome::new(
+                            false,
+                            Some("The newest contactlist was not returned".to_owned()),
+                        ),
+                    );
+                }
+            }
+            _ => {
+                set_outcome_by_name("accepts_contactlist", Outcome::new(true, None));
+                set_outcome_by_name(
+                    "replaces_contactlist",
+                    Outcome::new(
+                        false,
+                        Some("returns multiple events in replacement group".to_owned()),
+                    ),
+                );
+            }
         };
-        self.probe.fetch_events(filter)
-         */
 
         Ok(())
     }
 
+    //        let ephemeral = self.event_group_a.get("ephemeral").unwrap();
     // TBD: Test ephemeral again with a 2nd probe subscribed to see if it shows up when posted
 }

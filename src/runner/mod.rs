@@ -156,7 +156,13 @@ impl Runner {
             "\n{} ----- ",
             "TESTING REPLACEABLES".color(Color::LightBlue)
         );
-        self.test_replaceables().await?;
+        self.test_replaceables_basic().await?;
+
+        // test_ephemeral
+
+        // test_replacable_deletes
+
+        // test_deletes
 
         Ok(())
     }
