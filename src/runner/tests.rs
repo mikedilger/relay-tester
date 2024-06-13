@@ -2,12 +2,13 @@ use crate::error::Error;
 use crate::probe::AuthState;
 use crate::results::{set_outcome_by_name, Outcome};
 use crate::runner::Runner;
+use crate::runner::events::{build_event, build_event_ago};
 use nostr_types::{
-    EventKind, Filter, Id, IdHex, PreEvent, PrivateKey, PublicKeyHex, Signature, Signer, Tag,
+    EventKind, Filter, Id, IdHex, PreEvent, PrivateKey, PublicKeyHex, Signature, Signer,
     Unixtime,
 };
 use serde_json::Value;
-use std::ops::{Add, Sub};
+use std::ops::Add;
 use std::time::Duration;
 
 impl Runner {
@@ -176,17 +177,7 @@ impl Runner {
     }
 
     pub async fn test_public_access(&mut self) {
-        let event = {
-            let pre = PreEvent {
-                pubkey: self.stranger1.public_key(),
-                created_at: Unixtime::now().unwrap(),
-                kind: EventKind::TextNote,
-                tags: vec![Tag::new(&["test"])],
-                content: "This is a test from a random keypair. Feel free to delete.".to_string(),
-            };
-            self.stranger1.sign_event(pre).unwrap()
-        };
-
+        let event = build_event_ago(&self.stranger1, 0, EventKind::TextNote, &[&["test"]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
@@ -195,23 +186,13 @@ impl Runner {
     }
 
     pub async fn test_created_at_events(&mut self) -> Result<(), Error> {
-        let mut pre_event = PreEvent {
-            pubkey: self.registered_user.public_key(),
-            created_at: Unixtime::now().unwrap(),
-            kind: EventKind::TextNote,
-            tags: vec![],
-            content: "Testing created_at variations".to_owned(),
-        };
-
-        // now (to verify we can post, not recorded as a test outcome)
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let event = build_event_ago(&self.registered_user, 0, EventKind::TextNote, &[&[]]);
         if let Err(_) = self.probe.post_event_and_verify(&event).await {
             return Err(Error::CannotPost);
         }
 
         // 1 week ago
-        pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 7, 0));
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let event = build_event_ago(&self.registered_user, 60*24*7, EventKind::TextNote, &[&[]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
@@ -219,10 +200,7 @@ impl Runner {
         set_outcome_by_name("accepts_events_one_week_old", outcome);
 
         // 1 month ago
-        pre_event.created_at = Unixtime::now()
-            .unwrap()
-            .sub(Duration::new(86400 * 7 * 4, 0));
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let event = build_event_ago(&self.registered_user, 60*24*7*4, EventKind::TextNote, &[&[]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
@@ -230,35 +208,31 @@ impl Runner {
         set_outcome_by_name("accepts_events_one_month_old", outcome);
 
         // 1 year ago
-        pre_event.created_at = Unixtime::now().unwrap().sub(Duration::new(86400 * 365, 0));
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let event = build_event_ago(&self.registered_user, 60*24*365, EventKind::TextNote, &[&[]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
         set_outcome_by_name("accepts_events_one_year_old", outcome);
 
-        // 2015
-        pre_event.created_at = Unixtime(1420070461); // Thursday, January 1, 2015 12:01:01 AM GMT
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        // 2015, Thursday, January 1, 2015 12:01:01 AM GMT
+        let event = build_event(&self.registered_user, Unixtime(1420070461), EventKind::TextNote, &[&[]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
         set_outcome_by_name("accepts_events_from_before_nostr", outcome);
 
-        // 1999
-        pre_event.created_at = Unixtime(915148861); // Friday, January 1, 1999 12:01:01 AM
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        // 1999, Friday, January 1, 1999 12:01:01 AM
+        let event = build_event(&self.registered_user, Unixtime(915148861), EventKind::TextNote, &[&[]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
         set_outcome_by_name("accepts_events_from_before_2000", outcome);
 
-        // 1970
-        pre_event.created_at = Unixtime(0); // Thursday, January 1, 1970 12:00:00 AM
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        // 1970, Thursday, January 1, 1970 12:00:00 AM
+        let event = build_event(&self.registered_user, Unixtime(0), EventKind::TextNote, &[&[]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
@@ -270,7 +244,7 @@ impl Runner {
             "-200",
             "1",
             "[]",
-            "Testing created_at variations",
+            &textnonce::TextNonce::new(),
             &self.registered_user,
         )
         .await;
@@ -282,8 +256,8 @@ impl Runner {
         set_outcome_by_name("accepts_events_from_before_1970", outcome);
 
         // 1 year hence
-        pre_event.created_at = Unixtime::now().unwrap().add(Duration::new(86400 * 365, 0));
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let created_at = Unixtime::now().unwrap().add(Duration::new(86400 * 365, 0));
+        let event = build_event(&self.registered_user, created_at, EventKind::TextNote, &[&[]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
@@ -291,8 +265,8 @@ impl Runner {
         set_outcome_by_name("accepts_events_one_year_into_the_future", outcome);
 
         // distant future
-        pre_event.created_at = Unixtime(i64::MAX);
-        let event = self.registered_user.sign_event(pre_event.clone()).unwrap();
+        let created_at = Unixtime(i64::MAX);
+        let event = build_event(&self.registered_user, created_at, EventKind::TextNote, &[&[]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
@@ -304,7 +278,7 @@ impl Runner {
             "2147483649", // 2^31 + 1
             "1",
             "[]",
-            "Testing created_at variations",
+            &textnonce::TextNonce::new(),
             &self.registered_user,
         )
         .await;
@@ -323,7 +297,7 @@ impl Runner {
             "4294967297", // 2^32 + 1
             "1",
             "[]",
-            "Testing created_at variations",
+            &textnonce::TextNonce::new(),
             &self.registered_user,
         )
         .await;
@@ -342,7 +316,7 @@ impl Runner {
             "1e+10",
             "1",
             "[]",
-            "Testing created_at variations",
+            &textnonce::TextNonce::new(),
             &self.registered_user,
         )
         .await;
@@ -453,6 +427,7 @@ impl Runner {
             tags: vec![],
             content: "This is a test.".to_owned(),
         };
+        // GINA
         let mut event = self.registered_user.sign_event(pre_event.clone()).unwrap();
         event.sig = Signature::zeroes();
         let outcome = match self.probe.post_event(&event).await {
@@ -466,11 +441,13 @@ impl Runner {
         set_outcome_by_name("verifies_signatures", outcome);
 
         // Create event with bad ID (but good signature of that bad ID)
+        // GINA
         let mut event = self.registered_user.sign_event(pre_event.clone()).unwrap();
         event.id = Id::try_from_hex_string(
             "cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe",
         )
         .unwrap();
+        // GINA
         event.sig = self.registered_user.sign_id(event.id).unwrap();
         let outcome = match self.probe.post_event(&event).await {
             Ok((true, _)) => Outcome::new(false, Some("Accepted event with invalid id".to_owned())),
