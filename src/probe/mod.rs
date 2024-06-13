@@ -4,8 +4,8 @@ use inner::ProbeInner;
 use crate::error::Error;
 use http::Uri;
 use nostr_types::{
-    Event, EventKind, Filter, Id, IdHex, PreEvent, PublicKey, PublicKeyHex, RelayMessage, Signer, SubscriptionId, Tag,
-    Unixtime,
+    Event, EventKind, Filter, Id, IdHex, PreEvent, PublicKey, PublicKeyHex, RelayMessage, Signer,
+    SubscriptionId, Tag, Unixtime,
 };
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -244,7 +244,11 @@ impl Probe {
         }
     }
 
-    pub async fn get_replaceables(&mut self, author: PublicKey, kind: EventKind) -> Result<Vec<Event>, Error> {
+    pub async fn get_replaceables(
+        &mut self,
+        author: PublicKey,
+        kind: EventKind,
+    ) -> Result<Vec<Event>, Error> {
         let filter = {
             let mut filter = Filter::new();
             let pkh: PublicKeyHex = author.into();

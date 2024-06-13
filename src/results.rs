@@ -148,7 +148,6 @@ pub const TESTDEFS: [(bool, &str); 50] = [
     (true, "accepts_metadata"),
     (true, "replaces_metadata"),
     (false, "replaced_events_still_available_by_id"),
-
     // (disconnect and reconnect happens here, no longer AUTHed)
 
     // STRANGER TESTS

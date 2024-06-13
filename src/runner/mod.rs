@@ -47,11 +47,7 @@ impl Runner {
         }
 
         // Authenticate as the registered user
-        if let Err(e) = self
-            .probe
-            .authenticate(&self.registered_user)
-            .await
-        {
+        if let Err(e) = self.probe.authenticate(&self.registered_user).await {
             errors.push(e);
         }
 
@@ -156,7 +152,10 @@ impl Runner {
         self.test_fetches().await;
 
         // Test replaceables
-        eprintln!("\n{} ----- ", "TESTING REPLACEABLES".color(Color::LightBlue));
+        eprintln!(
+            "\n{} ----- ",
+            "TESTING REPLACEABLES".color(Color::LightBlue)
+        );
         self.test_replaceables().await?;
 
         Ok(())

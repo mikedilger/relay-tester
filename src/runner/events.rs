@@ -3,12 +3,24 @@ use std::collections::HashMap;
 use std::ops::Sub;
 use std::time::Duration;
 
-pub fn build_event_ago(user: &dyn Signer, minutes_ago: u64, kind: EventKind, intags: &[&[&str]]) -> Event {
-    let created_at = Unixtime::now().unwrap().sub(Duration::new(minutes_ago * 60, 0));
+pub fn build_event_ago(
+    user: &dyn Signer,
+    minutes_ago: u64,
+    kind: EventKind,
+    intags: &[&[&str]],
+) -> Event {
+    let created_at = Unixtime::now()
+        .unwrap()
+        .sub(Duration::new(minutes_ago * 60, 0));
     build_event(user, created_at, kind, intags)
 }
 
-pub fn build_event(user: &dyn Signer, created_at: Unixtime, kind: EventKind, intags: &[&[&str]]) -> Event {
+pub fn build_event(
+    user: &dyn Signer,
+    created_at: Unixtime,
+    kind: EventKind,
+    intags: &[&[&str]],
+) -> Event {
     let mut tags: Vec<Tag> = Vec::new();
     for tin in intags.iter() {
         tags.push(Tag::from_strings(
