@@ -211,11 +211,7 @@ impl Runner {
         (id, raw_event)
     }
 
-    async fn test_fetch_by_filter(
-        &mut self,
-        filter: Filter,
-        outcome_name: &'static str,
-    ) {
+    async fn test_fetch_by_filter(&mut self, filter: Filter, outcome_name: &'static str) {
         let events = match self.probe.fetch_events(vec![filter.clone()]).await {
             Ok(events) => events,
             Err(e) => {

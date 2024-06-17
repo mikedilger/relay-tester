@@ -392,8 +392,7 @@ impl Runner {
                 filter.ids = ids;
                 filter
             };
-            self.test_fetch_by_filter(filter, "find_by_id")
-                .await;
+            self.test_fetch_by_filter(filter, "find_by_id").await;
         }
 
         let filter = {
@@ -435,8 +434,7 @@ impl Runner {
             filter.add_tag_value('k', "3036".to_string());
             filter
         };
-        self.test_fetch_by_filter(filter, "find_by_tags")
-            .await;
+        self.test_fetch_by_filter(filter, "find_by_tags").await;
 
         let filter = {
             let mut filter = Filter::new();
@@ -457,12 +455,10 @@ impl Runner {
             filter.add_author(&pkh);
             filter
         };
-        self.test_fetch_by_filter(filter, "find_by_pubkey")
-            .await;
+        self.test_fetch_by_filter(filter, "find_by_pubkey").await;
 
         let filter = Filter::new();
-        self.test_fetch_by_filter(filter, "find_by_scrape")
-            .await;
+        self.test_fetch_by_filter(filter, "find_by_scrape").await;
 
         //"find_replaceable_event",
         //"find_parameterized_replaceable_event",
