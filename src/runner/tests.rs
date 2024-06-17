@@ -387,13 +387,12 @@ impl Runner {
                 ),
             );
         } else {
-            let ids_len = ids.len();
             let filter = {
                 let mut filter = Filter::new();
                 filter.ids = ids;
                 filter
             };
-            self.test_fetch_by_filter(filter, Some(ids_len), "find_by_id")
+            self.test_fetch_by_filter(filter, "find_by_id")
                 .await;
         }
 
@@ -407,7 +406,7 @@ impl Runner {
             filter.add_event_kind(EventKind::ContactList);
             filter
         };
-        self.test_fetch_by_filter(filter, None, "find_by_pubkey_and_kind")
+        self.test_fetch_by_filter(filter, "find_by_pubkey_and_kind")
             .await;
 
         let filter = {
@@ -417,7 +416,7 @@ impl Runner {
             filter.add_tag_value('p', pkh.to_string());
             filter
         };
-        self.test_fetch_by_filter(filter, None, "find_by_pubkey_and_tags")
+        self.test_fetch_by_filter(filter, "find_by_pubkey_and_tags")
             .await;
 
         let filter = {
@@ -428,7 +427,7 @@ impl Runner {
             filter.add_tag_value('p', pkh.to_string());
             filter
         };
-        self.test_fetch_by_filter(filter, None, "find_by_kind_and_tags")
+        self.test_fetch_by_filter(filter, "find_by_kind_and_tags")
             .await;
 
         let filter = {
@@ -437,7 +436,7 @@ impl Runner {
             filter.add_tag_value('p', pkh.to_string());
             filter
         };
-        self.test_fetch_by_filter(filter, None, "find_by_tags")
+        self.test_fetch_by_filter(filter, "find_by_tags")
             .await;
 
         let filter = {
@@ -446,11 +445,11 @@ impl Runner {
             filter.add_author(&pkh);
             filter
         };
-        self.test_fetch_by_filter(filter, None, "find_by_pubkey")
+        self.test_fetch_by_filter(filter, "find_by_pubkey")
             .await;
 
         let filter = Filter::new();
-        self.test_fetch_by_filter(filter, None, "find_by_scrape")
+        self.test_fetch_by_filter(filter, "find_by_scrape")
             .await;
 
         //"find_replaceable_event",

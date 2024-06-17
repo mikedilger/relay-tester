@@ -214,7 +214,6 @@ impl Runner {
     async fn test_fetch_by_filter(
         &mut self,
         filter: Filter,
-        expected_count: Option<usize>,
         outcome_name: &'static str,
     ) {
         let events = match self.probe.fetch_events(vec![filter.clone()]).await {
@@ -225,19 +224,7 @@ impl Runner {
             }
         };
 
-        if let Some(expected) = expected_count {
-            if events.len() != expected {
-                set_outcome_by_name(
-                    outcome_name,
-                    Outcome::new(
-                        false,
-                        Some(format!("Expected {} got {}", expected, events.len())),
-                    ),
-                );
-                return;
-            }
-        }
-
+        // Make sure all the events that are returned match the filter
         for event in events.iter() {
             if !filter.event_matches(event) {
                 set_outcome_by_name(
@@ -251,6 +238,26 @@ impl Runner {
             }
         }
 
-        set_outcome_by_name(outcome_name, Outcome::new(true, None));
+        // Make sure all the injected events that match were returned
+        let mut matches = 0;
+        for (name, event) in &self.event_group_a {
+            if filter.event_matches(event) {
+                matches += 1;
+                if !events.iter().any(|e| e.id == event.id) {
+                    set_outcome_by_name(
+                        outcome_name,
+                        Outcome::new(
+                            false,
+                            Some(format!("Failed to return matching event label={}", name)),
+                        ),
+                    );
+                }
+            }
+        }
+
+        set_outcome_by_name(
+            outcome_name,
+            Outcome::new(true, Some(format!("matched {} events", matches))),
+        );
     }
 }
