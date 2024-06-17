@@ -442,6 +442,20 @@ impl Runner {
         let filter = {
             let mut filter = Filter::new();
             let pkh: PublicKeyHex = self.registered_user.public_key().into();
+            filter.add_event_kind(EventKind::Other(30383));
+            filter.add_author(&pkh);
+            filter.add_tag_value('k', "3036".to_string());
+            filter.add_tag_value('p', self.registered_user.public_key().as_hex_string());
+            filter.add_tag_value('n', "approved".to_string());
+            filter.limit = Some(20);
+            filter
+        };
+        self.test_fetch_by_filter(filter, "find_by_multiple_tags")
+            .await;
+
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = self.registered_user.public_key().into();
             filter.add_author(&pkh);
             filter
         };

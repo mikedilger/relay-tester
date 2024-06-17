@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 52;
-pub const TESTDEFS: [(bool, &str); 52] = [
+pub const NUMTESTS: usize = 53;
+pub const TESTDEFS: [(bool, &str); 53] = [
     // PREAUTH TESTS
     // -------------
 
@@ -142,6 +142,7 @@ pub const TESTDEFS: [(bool, &str); 52] = [
     (true, "find_by_pubkey_and_tags"),
     (true, "find_by_kind_and_tags"),
     (true, "find_by_tags"),
+    (true, "find_by_multiple_tags"),
     (true, "find_by_pubkey"),
     (true, "find_by_scrape"),
     //   REPLACEABLES
