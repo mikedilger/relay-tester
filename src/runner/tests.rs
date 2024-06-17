@@ -421,10 +421,10 @@ impl Runner {
 
         let filter = {
             let mut filter = Filter::new();
-            let pkh: PublicKeyHex = self.registered_user.public_key().into();
             filter.add_event_kind(EventKind::TextNote);
+            filter.add_event_kind(EventKind::Other(30383));
             filter.add_event_kind(EventKind::ContactList);
-            filter.add_tag_value('p', pkh.to_string());
+            filter.add_tag_value('n', "approved".to_string());
             filter
         };
         self.test_fetch_by_filter(filter, "find_by_kind_and_tags")
@@ -432,8 +432,7 @@ impl Runner {
 
         let filter = {
             let mut filter = Filter::new();
-            let pkh: PublicKeyHex = self.registered_user.public_key().into();
-            filter.add_tag_value('p', pkh.to_string());
+            filter.add_tag_value('k', "3036".to_string());
             filter
         };
         self.test_fetch_by_filter(filter, "find_by_tags")
@@ -445,7 +444,6 @@ impl Runner {
             filter.add_event_kind(EventKind::Other(30383));
             filter.add_author(&pkh);
             filter.add_tag_value('k', "3036".to_string());
-            filter.add_tag_value('p', self.registered_user.public_key().as_hex_string());
             filter.add_tag_value('n', "approved".to_string());
             filter.limit = Some(20);
             filter
@@ -630,17 +628,17 @@ impl Runner {
                     let mut outcome = Outcome::new(true, None);
                     let mut last = Unixtime(i64::MAX);
                     for event in events.iter() {
-                        if event.created_at < last {
+                        if event.created_at <= last {
                             last = event.created_at;
                         } else {
-                            outcome = Outcome::new(false, None);
+                            outcome = Outcome::new(false, Some("Order is wrong".to_owned()));
                             break;
                         }
                     }
                     outcome
                 }
             }
-            Err(Error::Timeout(_)) => Outcome::new(false, None),
+            Err(Error::Timeout(e)) => Outcome::new(false, Some(format!("{}", e))),
             Err(e) => Outcome::new(false, Some(format!("{}", e))),
         };
         set_outcome_by_name("events_ordered_from_newest_to_oldest", outcome);

@@ -38,16 +38,31 @@ pub fn build_event(
     event
 }
 
-const GROUP_A: [(&str, u64, EventKind, &[&[&str]]); 11] = [
-    ("limit_test_first", 40, EventKind::TextNote, &[]),
-    ("limit_test_third", 50, EventKind::TextNote, &[]),
-    ("limit_test_second", 45, EventKind::TextNote, &[]),
-    ("limit_test_fourth", 55, EventKind::TextNote, &[]),
+const GROUP_A: [(&str, u64, EventKind, &[&[&str]]); 13] = [
+    ("limit_test_first", 40, EventKind::TextNote, &[&["t","a"]]),
+    ("limit_test_third", 50, EventKind::TextNote, &[&["t","a"]]),
+    ("limit_test_second", 45, EventKind::TextNote, &[&["t","b"]]),
+    ("limit_test_fourth", 55, EventKind::TextNote, &[&["t","b"]]),
     ("metadata_older", 60, EventKind::Metadata, &[]),
     ("metadata_newer", 0, EventKind::Metadata, &[]),
     ("contactlist_newer", 10, EventKind::ContactList, &[]),
     ("contactlist_older", 70, EventKind::ContactList, &[]),
     ("ephemeral", 10, EventKind::Ephemeral(21212), &[]),
+    (
+        "multipletags",
+        10,
+        EventKind::Other(30383), &[
+            &["k", "3036"],
+            &["n", "approved"],
+        ]
+    ),
+    (
+        "multipletags_shouldntmatch",
+        10,
+        EventKind::Other(30383), &[
+            &["n", "approved"],
+        ]
+    ),
     (
         "older_param_replaceable",
         120,
