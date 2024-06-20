@@ -175,13 +175,22 @@ impl Runner {
         set_outcome_by_name("keeps_open_incomplete_subscriptions_after_eose", outcome);
     }
 
+    pub async fn test_ok(&mut self) {
+        let event = build_event_ago(&self.stranger1, 0, EventKind::TextNote, &[&["test"]]);
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((_ok, _reason)) => Outcome::new(true, None),
+            Err(e) => Outcome::new(false, Some(format!("{}", e))),
+        };
+        set_outcome_by_name("sends_ok_after_event", outcome);
+    }
+
     pub async fn test_public_access(&mut self) {
         let event = build_event_ago(&self.stranger1, 0, EventKind::TextNote, &[&["test"]]);
         let outcome = match self.probe.post_event_and_verify(&event).await {
             Ok(()) => Outcome::new(true, None),
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
-        set_outcome_by_name("public_can_write", outcome.clone());
+        set_outcome_by_name("public_can_write", outcome);
     }
 
     pub async fn test_created_at_events(&mut self) -> Result<(), Error> {

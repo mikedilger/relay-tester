@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 53;
-pub const TESTDEFS: [(bool, &str); 53] = [
+pub const NUMTESTS: usize = 54;
+pub const TESTDEFS: [(bool, &str); 54] = [
     // PREAUTH TESTS
     // -------------
 
@@ -93,6 +93,8 @@ pub const TESTDEFS: [(bool, &str); 53] = [
     (true, "supports_eose"),
     (false, "closes_complete_subscriptions_after_eose"),
     (true, "keeps_open_incomplete_subscriptions_after_eose"),
+    //   OK after EVENT
+    (true, "sends_ok_after_event"),
     //   PUBLIC ACCESS
     (false, "public_can_write"),
     // (injection happens here)

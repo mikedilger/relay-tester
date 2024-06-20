@@ -93,6 +93,9 @@ impl Runner {
         eprintln!("\n{} -----", "TESTING EOSE".color(Color::LightBlue));
         self.test_eose().await;
 
+        eprintln!("\n{} -----", "TESTING OK".color(Color::LightBlue));
+        self.test_ok().await;
+
         eprintln!(
             "\n{} ----- ",
             "TESTING PUBLIC ACCESS".color(Color::LightBlue)
