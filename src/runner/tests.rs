@@ -213,8 +213,14 @@ impl Runner {
 
     pub async fn test_public_ephemeral_events(&mut self) {
         let event = build_event_ago(&self.stranger1, 0, EventKind::WalletResponse, &[&["test"]]);
-        let outcome = match self.probe.post_event_and_verify(&event).await {
-            Ok(()) => Outcome::new(true, None),
+        let outcome = match self.probe.post_event(&event).await {
+            Ok((ok, reason)) => {
+                if ok {
+                    Outcome::new(true, None)
+                } else {
+                    Outcome::new(false, Some(reason))
+                }
+            }
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
         set_outcome_by_name("accepts_ephemeral_events_from_public", outcome);
