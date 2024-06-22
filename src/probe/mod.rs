@@ -216,6 +216,7 @@ impl Probe {
             let mut filter = Filter::new();
             let idhex: IdHex = event.id.into();
             filter.add_id(&idhex);
+            filter.kinds = vec![event.kind];
             filter
         };
         let events = self.fetch_events(vec![filter]).await?;
