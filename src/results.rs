@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 54;
-pub const TESTDEFS: [(bool, &str); 54] = [
+pub const NUMTESTS: usize = 57;
+pub const TESTDEFS: [(bool, &str); 57] = [
     // PREAUTH TESTS
     // -------------
 
@@ -97,6 +97,9 @@ pub const TESTDEFS: [(bool, &str); 54] = [
     (true, "sends_ok_after_event"),
     //   PUBLIC ACCESS
     (false, "public_can_write"),
+    (false, "accepts_relay_lists_from_public"),
+    (false, "accepts_dm_relay_lists_from_public"),
+    (false, "accepts_ephemeral_events_from_public"),
     // (injection happens here)
 
     // REGISTERED TESTS

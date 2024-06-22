@@ -193,6 +193,33 @@ impl Runner {
         set_outcome_by_name("public_can_write", outcome);
     }
 
+    pub async fn test_public_relay_lists(&mut self) {
+        let event = build_event_ago(&self.stranger1, 0, EventKind::RelayList, &[&["test"]]);
+        let outcome = match self.probe.post_event_and_verify(&event).await {
+            Ok(()) => Outcome::new(true, None),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_relay_lists_from_public", outcome);
+    }
+
+    pub async fn test_public_dm_relay_lists(&mut self) {
+        let event = build_event_ago(&self.stranger1, 0, EventKind::DmRelayList, &[&["test"]]);
+        let outcome = match self.probe.post_event_and_verify(&event).await {
+            Ok(()) => Outcome::new(true, None),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_dm_relay_lists_from_public", outcome);
+    }
+
+    pub async fn test_public_ephemeral_events(&mut self) {
+        let event = build_event_ago(&self.stranger1, 0, EventKind::WalletResponse, &[&["test"]]);
+        let outcome = match self.probe.post_event_and_verify(&event).await {
+            Ok(()) => Outcome::new(true, None),
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("accepts_ephemeral_events_from_public", outcome);
+    }
+
     pub async fn test_created_at_events(&mut self) -> Result<(), Error> {
         let event = build_event_ago(&self.registered_user, 0, EventKind::TextNote, &[&[]]);
         if let Err(_) = self.probe.post_event_and_verify(&event).await {

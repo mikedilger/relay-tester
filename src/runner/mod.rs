@@ -101,6 +101,9 @@ impl Runner {
             "TESTING PUBLIC ACCESS".color(Color::LightBlue)
         );
         self.test_public_access().await;
+        self.test_public_relay_lists().await;
+        self.test_public_dm_relay_lists().await;
+        self.test_public_ephemeral_events().await;
 
         Ok(())
     }
