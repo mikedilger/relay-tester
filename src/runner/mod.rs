@@ -11,6 +11,7 @@ mod events;
 mod tests;
 
 pub struct Runner {
+    relay_url: String,
     probe: Probe,
     stranger1: KeySigner,
     registered_user: KeySigner,
@@ -19,7 +20,7 @@ pub struct Runner {
 
 impl Runner {
     pub fn new(relay_url: String, private_key: PrivateKey) -> Runner {
-        let probe = Probe::new(relay_url);
+        let probe = Probe::new(relay_url.clone());
 
         let stranger1 = {
             let private_key = PrivateKey::generate();
@@ -31,6 +32,7 @@ impl Runner {
         let event_group_a = events::build_event_group_a(&registered_user);
 
         Runner {
+            relay_url,
             probe,
             stranger1,
             registered_user,
@@ -146,7 +148,15 @@ impl Runner {
         eprintln!("\n{} ----- ", "TESTING MISC EVENTS".color(Color::LightBlue));
         self.test_misc_events().await;
 
+        // Test ephemeral events
+        eprintln!(
+            "\n{} ----- ",
+            "TESTING EPHEMERAL EVENTS".color(Color::LightBlue)
+        );
+        self.test_ephemeral_events().await;
+
         // Test REQ event order
+        eprintln!("\n{} ----- ", "TESTING EVENT ORDER".color(Color::LightBlue));
         self.test_event_order().await;
 
         // Test LIMIT

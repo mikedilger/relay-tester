@@ -309,6 +309,28 @@ impl Probe {
         }
     }
 
+    /// Fetch just one more event on a the current subscription.
+    /// Also exit on a CLOSED or a timeout.
+    pub async fn fetch_next_event(&mut self) -> Result<Event, Error> {
+        let sub_id = SubscriptionId(format!("sub{}", self.next_sub_id - 1));
+        loop {
+            let rm = self.wait_for_a_response().await?;
+            match rm {
+                RelayMessage::Event(sub, box_event) => {
+                    if sub == sub_id {
+                        return Ok((*box_event).clone());
+                    }
+                }
+                RelayMessage::Closed(sub, msg) => {
+                    if sub == sub_id {
+                        return Err(Error::SubClosed(msg));
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
     /// Fetch events, but just check if it CLOSED after EOSE.
     pub async fn fetch_check_close(&mut self, filters: Vec<Filter>) -> Result<bool, Error> {
         let sub_id = SubscriptionId(format!("sub{}", self.next_sub_id));

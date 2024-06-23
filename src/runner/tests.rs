@@ -515,7 +515,7 @@ impl Runner {
             tags: vec![],
             content: "This is a test.".to_owned(),
         };
-        // GINA
+
         let mut event = self.registered_user.sign_event(pre_event.clone()).unwrap();
         event.sig = Signature::zeroes();
         let outcome = match self.probe.post_event(&event).await {
@@ -529,13 +529,12 @@ impl Runner {
         set_outcome_by_name("verifies_signatures", outcome);
 
         // Create event with bad ID (but good signature of that bad ID)
-        // GINA
         let mut event = self.registered_user.sign_event(pre_event.clone()).unwrap();
         event.id = Id::try_from_hex_string(
             "cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe",
         )
         .unwrap();
-        // GINA
+
         event.sig = self.registered_user.sign_id(event.id).unwrap();
         let outcome = match self.probe.post_event(&event).await {
             Ok((true, _)) => Outcome::new(false, Some("Accepted event with invalid id".to_owned())),
@@ -641,6 +640,75 @@ impl Runner {
             Err(e) => Outcome::new(false, Some(format!("{e}"))),
         };
         set_outcome_by_name("accepts_events_with_empty_tags", outcome);
+    }
+
+    pub async fn test_ephemeral_events(&mut self) {
+        // Setup listener to receive
+        let mut listener_probe = crate::probe::Probe::new(self.relay_url.clone());
+        let mut filter = Filter::new();
+        filter.kinds = vec![EventKind::Ephemeral(25000)];
+        let pkh: PublicKeyHex = self.registered_user.public_key().into();
+        filter.add_author(&pkh);
+        let _ = listener_probe.fetch_events(vec![filter.clone()]).await; // this waits for EOSE
+
+        let fail = |r: String| {
+            set_outcome_by_name("ephemeral_subscriptions_work", Outcome::new(false, Some(r)));
+            set_outcome_by_name(
+                "persists_ephemeral_events",
+                Outcome::new(
+                    false,
+                    Some("Untested because ephemeral events dont work".to_string()),
+                ),
+            );
+        };
+
+        let event = build_event_ago(
+            &self.registered_user,
+            0,
+            EventKind::Ephemeral(25000),
+            &[&["test"]],
+        );
+        match self.probe.post_event(&event).await {
+            Ok((true, _)) => {}
+            Ok((false, reason)) => fail(reason),
+            Err(e) => fail(format!("{e}")),
+        };
+
+        // Verify it came in on the listener_probe
+        let outcome = match listener_probe.fetch_next_event().await {
+            Ok(event2) => {
+                if event == event2 {
+                    Outcome::new(true, None)
+                } else {
+                    Outcome::new(
+                        false,
+                        Some("fetched event did not match submitted event".to_string()),
+                    )
+                }
+            }
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("ephemeral_subscriptions_work", outcome);
+
+        let _ = listener_probe.exit();
+
+        // See if it still returns the ephemeral event
+        let outcome = match self.probe.fetch_events(vec![filter.clone()]).await {
+            Ok(events) => {
+                if events.is_empty() {
+                    Outcome::new(false, None)
+                } else if events[0] == event {
+                    Outcome::new(true, None)
+                } else {
+                    Outcome::new(
+                        false,
+                        Some("fetched event did not match submitted event".to_string()),
+                    )
+                }
+            }
+            Err(e) => Outcome::new(false, Some(format!("{e}"))),
+        };
+        set_outcome_by_name("persists_ephemeral_events", outcome);
     }
 
     pub async fn test_event_order(&mut self) {

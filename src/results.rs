@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 57;
-pub const TESTDEFS: [(bool, &str); 57] = [
+pub const NUMTESTS: usize = 59;
+pub const TESTDEFS: [(bool, &str); 59] = [
     // PREAUTH TESTS
     // -------------
 
@@ -137,6 +137,9 @@ pub const TESTDEFS: [(bool, &str); 57] = [
     ),
     //   MISC EVENTS
     (false, "accepts_events_with_empty_tags"),
+    //   EPHEMERAL
+    (false, "ephemeral_subscriptions_work"),
+    (false, "persists_ephemeral_events"),
     //   EVENT ORDER
     (true, "events_ordered_from_newest_to_oldest"),
     //   LIMIT
@@ -235,8 +238,8 @@ pub const TESTDEFS: [(bool, &str); 57] = [
 
     (false, "accepts_null_characters"),
     (false, "handles_filter_prefixes"),
-    (false, "keeps_ephemeral_events"),
     (false, "max_subscriptions"),
+    (false, "max_connections"),
     (false, "allows_immediate_reconnect"),
     (false, "idle_timeout_if_unsubscribed"),
     */
