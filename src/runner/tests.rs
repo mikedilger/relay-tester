@@ -418,7 +418,7 @@ impl Runner {
         let ids: Vec<IdHex> = self
             .event_group_a
             .iter()
-            .map(|(_, e)| e.id.into())
+            .map(|(_, (e,_r))| e.id.into())
             .collect();
         if ids.is_empty() {
             set_outcome_by_name(
@@ -434,7 +434,7 @@ impl Runner {
                 filter.ids = ids;
                 filter
             };
-            self.test_fetch_by_filter(filter, "find_by_id").await;
+            self.test_fetch_by_filter_group_a(filter, "find_by_id").await;
         }
 
         let filter = {
@@ -447,7 +447,7 @@ impl Runner {
             filter.add_event_kind(EventKind::ContactList);
             filter
         };
-        self.test_fetch_by_filter(filter, "find_by_pubkey_and_kind")
+        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey_and_kind")
             .await;
 
         let filter = {
@@ -457,7 +457,7 @@ impl Runner {
             filter.add_tag_value('p', pkh.to_string());
             filter
         };
-        self.test_fetch_by_filter(filter, "find_by_pubkey_and_tags")
+        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey_and_tags")
             .await;
 
         let filter = {
@@ -468,7 +468,7 @@ impl Runner {
             filter.add_tag_value('n', "approved".to_string());
             filter
         };
-        self.test_fetch_by_filter(filter, "find_by_kind_and_tags")
+        self.test_fetch_by_filter_group_a(filter, "find_by_kind_and_tags")
             .await;
 
         let filter = {
@@ -476,7 +476,7 @@ impl Runner {
             filter.add_tag_value('k', "3036".to_string());
             filter
         };
-        self.test_fetch_by_filter(filter, "find_by_tags").await;
+        self.test_fetch_by_filter_group_a(filter, "find_by_tags").await;
 
         let filter = {
             let mut filter = Filter::new();
@@ -488,7 +488,7 @@ impl Runner {
             filter.limit = Some(20);
             filter
         };
-        self.test_fetch_by_filter(filter, "find_by_multiple_tags")
+        self.test_fetch_by_filter_group_a(filter, "find_by_multiple_tags")
             .await;
 
         let filter = {
@@ -497,10 +497,10 @@ impl Runner {
             filter.add_author(&pkh);
             filter
         };
-        self.test_fetch_by_filter(filter, "find_by_pubkey").await;
+        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey").await;
 
         let filter = Filter::new();
-        self.test_fetch_by_filter(filter, "find_by_scrape").await;
+        self.test_fetch_by_filter_group_a(filter, "find_by_scrape").await;
 
         //"find_replaceable_event",
         //"find_parameterized_replaceable_event",
@@ -716,7 +716,7 @@ impl Runner {
         let ids: Vec<IdHex> = self
             .event_group_a
             .iter()
-            .map(|(_, e)| e.id.into())
+            .map(|(_, (e,_r))| e.id.into())
             .collect();
         let filter = {
             let mut filter = Filter::new();
@@ -761,8 +761,8 @@ impl Runner {
             filter
         };
 
-        let limit_test_first = self.event_group_a.get("limit_test_first").unwrap();
-        let limit_test_second = self.event_group_a.get("limit_test_second").unwrap();
+        let limit_test_first = &self.event_group_a.get("limit_test_first").unwrap().0;
+        let limit_test_second = &self.event_group_a.get("limit_test_second").unwrap().0;
 
         let outcome = match self.probe.fetch_events(vec![filter]).await {
             Ok(events) => {
@@ -786,13 +786,19 @@ impl Runner {
     }
 
     pub async fn test_replaceables_basic(&mut self) -> Result<(), Error> {
-        let metadata_older = self.event_group_a.get("metadata_older").unwrap();
-        let metadata_newer = self.event_group_a.get("metadata_newer").unwrap();
+        let metadata_older = &self.event_group_a.get("metadata_older").unwrap().0;
+        let metadata_newer = &self.event_group_a.get("metadata_newer").unwrap().0;
 
-        let metadata_events = self
-            .probe
-            .get_replaceables_of_author_and_kind(metadata_older.pubkey, metadata_older.kind)
-            .await?;
+        let metadata_events = {
+            let filter = {
+                let mut filter = Filter::new();
+                let pkh: PublicKeyHex = metadata_older.pubkey.into();
+                filter.add_author(&pkh);
+                filter.add_event_kind(metadata_older.kind);
+                filter
+            };
+            self.probe.fetch_events(vec![filter]).await?
+        };
         match metadata_events.len() {
             0 => {
                 set_outcome_by_name("accepts_metadata", Outcome::new(false, None));
@@ -833,14 +839,19 @@ impl Runner {
             Outcome::new(self.probe.check_exists(metadata_older.id).await?, None),
         );
 
-        let contactlist_older = self.event_group_a.get("contactlist_older").unwrap();
-        let contactlist_newer = self.event_group_a.get("contactlist_newer").unwrap();
+        let contactlist_older = &self.event_group_a.get("contactlist_older").unwrap().0;
+        let contactlist_newer = &self.event_group_a.get("contactlist_newer").unwrap().0;
 
-        let contactlist_events = self
-            .probe
-            .get_replaceables_of_author_and_kind(contactlist_older.pubkey, contactlist_older.kind)
-            .await?;
-
+        let contactlist_events = {
+            let filter = {
+                let mut filter = Filter::new();
+                let pkh: PublicKeyHex = contactlist_older.pubkey.into();
+                filter.add_author(&pkh);
+                filter.add_event_kind(contactlist_older.kind);
+                filter
+            };
+            self.probe.fetch_events(vec![filter]).await?
+        };
         match contactlist_events.len() {
             0 => {
                 set_outcome_by_name("accepts_contactlist", Outcome::new(false, None));

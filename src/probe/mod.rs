@@ -4,7 +4,7 @@ use inner::ProbeInner;
 use crate::error::Error;
 use http::Uri;
 use nostr_types::{
-    Event, EventKind, Filter, Id, IdHex, PreEvent, PublicKey, PublicKeyHex, RelayMessage, Signer,
+    Event, EventKind, Filter, Id, IdHex, PreEvent, RelayMessage, Signer,
     SubscriptionId, Tag, Unixtime,
 };
 use std::time::Duration;
@@ -245,22 +245,6 @@ impl Probe {
         }
     }
 
-    pub async fn get_replaceables_of_author_and_kind(
-        &mut self,
-        author: PublicKey,
-        kind: EventKind,
-    ) -> Result<Vec<Event>, Error> {
-        let filter = {
-            let mut filter = Filter::new();
-            let pkh: PublicKeyHex = author.into();
-            filter.add_author(&pkh);
-            filter.add_event_kind(kind);
-            filter
-        };
-        let events = self.fetch_events(vec![filter]).await?;
-        Ok(events)
-    }
-
     /// Post a raw event
     pub async fn post_raw_event(
         &mut self,
@@ -307,6 +291,52 @@ impl Probe {
                 _ => {}
             }
         }
+    }
+
+    /// Fetch events matching a set of filters using REQ, waiting
+    /// for them to flow in until EOSE or CLOSED or a timeout.
+    ///
+    /// Check that each event matches the filter.
+    ///
+    /// Check that all given events (which match the filters) are part of the
+    /// returned set.
+    ///
+    /// Returns the events, as well as how many given events were matched.
+    pub async fn fetch_events_and_check<'a, I>(&mut self, filters: Vec<Filter>, given: I)
+                                               -> Result<(Vec<Event>, usize), Error>
+        where I: Iterator<Item=&'a Event>
+    {
+        let events = self.fetch_events(filters.clone()).await?;
+
+        let matches_filters = |e: &Event| -> bool {
+            for filter in filters.iter() {
+                if filter.event_matches(e) {
+                    return true;
+                }
+            }
+            false
+        };
+
+        // Check that these all match the filters
+        for event in events.iter() {
+            if ! matches_filters(event) {
+                return Err(Error::EventDoesNotMatchFilters);
+            }
+        }
+
+        // Check that all given events which match the filters are
+        // present in the output
+        let mut matches: usize = 0;
+        for given_event in given {
+            if matches_filters(given_event) {
+                if !events.iter().any(|e| e.id == given_event.id) {
+                    return Err(Error::ExpectedEventIsMissing);
+                }
+                matches += 1;
+            }
+        }
+
+        Ok((events, matches))
     }
 
     /// Fetch just one more event on a the current subscription.

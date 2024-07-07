@@ -7,8 +7,10 @@ use std::fmt;
 pub enum Error {
     CannotPost,
     ChannelIsClosed,
+    EventDoesNotMatchFilters,
     EventMismatch,
     EventNotAccepted(String),
+    ExpectedEventIsMissing,
     ExpectedOneEvent(usize),
     SubClosed(String),
     General(String),
@@ -29,8 +31,10 @@ impl fmt::Display for Error {
         match self {
             Error::CannotPost => write!(f, "Cannot post benign event as registered user"),
             Error::ChannelIsClosed => write!(f, "Channel is closed"),
+            Error::EventDoesNotMatchFilters => write!(f, "Event does not match filters"),
             Error::EventMismatch => write!(f, "Event fetched does not match event submitted"),
             Error::EventNotAccepted(s) => write!(f, "Event not accepted: {s}"),
+            Error::ExpectedEventIsMissing => write!(f, "Expected event is missing"),
             Error::ExpectedOneEvent(u) => write!(f, "Expected one event, but got {u}"),
             Error::SubClosed(s) => write!(f, "Subscription closed: {}", s),
             Error::General(s) => write!(f, "General: {s}"),

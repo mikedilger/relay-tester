@@ -15,7 +15,12 @@ pub struct Runner {
     probe: Probe,
     stranger1: KeySigner,
     registered_user: KeySigner,
-    event_group_a: HashMap<&'static str, Event>,
+
+    /// the boolean indicates whether we will expect it to be on the relay
+    /// (it is false for events we expect to replace, and it gets set false for events
+    /// that the relay gives us ok=false for). We then use it when we test REQ filters
+    /// to make sure all events that we expect to be returned actually are returned.
+    event_group_a: HashMap<&'static str, (Event, bool)>,
 }
 
 impl Runner {
@@ -29,7 +34,19 @@ impl Runner {
 
         let registered_user = KeySigner::from_private_key(private_key, "", 8).unwrap();
 
-        let event_group_a = events::build_event_group_a(&registered_user);
+        let mut event_group_a: HashMap<&'static str, (Event, bool)> = HashMap::new();
+        for data in events::GROUP_A.iter() {
+            let event = events::build_event_ago(
+                &registered_user,
+                data.minutes_ago,
+                data.kind,
+                data.tags
+            );
+            event_group_a.insert(
+                data.name,
+                (event, data.can_read_back)
+            );
+        }
 
         Runner {
             relay_url,
@@ -117,10 +134,15 @@ impl Runner {
             "INJECTING EVENT GROUP A".color(Color::LightBlue)
         );
 
-        for (_name, refevent) in &self.event_group_a {
-            let _ = self.probe.post_event(refevent).await?;
-            // Ignore relay response; some relays may reject older replaced events
-            // with ok=false. We will notice that the event is not there.
+        for (_name, refval) in self.event_group_a.iter_mut() {
+            let (ok, _why) = self.probe.post_event(&refval.0).await?;
+
+            // Remember which events stored properly, so we can check against that set
+            if ! ok {
+                // Remember that we cannot read this one back, because the relay did not
+                // accept it
+                refval.1 = false;
+            }
         }
 
         // Test event validation
@@ -227,45 +249,24 @@ impl Runner {
         (id, raw_event)
     }
 
-    async fn test_fetch_by_filter(&mut self, filter: Filter, outcome_name: &'static str) {
-        let events = match self.probe.fetch_events(vec![filter.clone()]).await {
-            Ok(events) => events,
+    async fn test_fetch_by_filter_group_a(&mut self, filter: Filter, outcome_name: &'static str) {
+        // create an iterator over events that posted successfully to the relay
+        // to pass into probe.fetch_events_and_check (which will check that all of these
+        // which match the filter come back)
+        let given = self.event_group_a.iter()
+            .filter(|(_,(_e,r))| *r)
+            .map(|(_,(e,_r))| e);
+
+        let (_events, matches) = match self.probe.fetch_events_and_check(
+            vec![filter.clone()],
+            given
+        ).await {
+            Ok(pair) => pair,
             Err(e) => {
                 set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{e}"))));
                 return;
             }
         };
-
-        // Make sure all the events that are returned match the filter
-        for event in events.iter() {
-            if !filter.event_matches(event) {
-                set_outcome_by_name(
-                    outcome_name,
-                    Outcome::new(
-                        false,
-                        Some("Event returned doesn't match filter".to_owned()),
-                    ),
-                );
-                return;
-            }
-        }
-
-        // Make sure all the injected events that match were returned
-        let mut matches = 0;
-        for (name, event) in &self.event_group_a {
-            if filter.event_matches(event) {
-                matches += 1;
-                if !events.iter().any(|e| e.id == event.id) {
-                    set_outcome_by_name(
-                        outcome_name,
-                        Outcome::new(
-                            false,
-                            Some(format!("Failed to return matching event label={}", name)),
-                        ),
-                    );
-                }
-            }
-        }
 
         set_outcome_by_name(
             outcome_name,
