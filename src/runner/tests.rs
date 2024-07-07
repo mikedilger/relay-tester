@@ -791,7 +791,7 @@ impl Runner {
 
         let metadata_events = self
             .probe
-            .get_replaceables(metadata_older.pubkey, metadata_older.kind)
+            .get_replaceables_of_author_and_kind(metadata_older.pubkey, metadata_older.kind)
             .await?;
         match metadata_events.len() {
             0 => {
@@ -838,7 +838,7 @@ impl Runner {
 
         let contactlist_events = self
             .probe
-            .get_replaceables(contactlist_older.pubkey, contactlist_older.kind)
+            .get_replaceables_of_author_and_kind(contactlist_older.pubkey, contactlist_older.kind)
             .await?;
 
         match contactlist_events.len() {

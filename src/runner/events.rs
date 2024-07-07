@@ -38,7 +38,7 @@ pub fn build_event(
     event
 }
 
-const GROUP_A: [(&str, u64, EventKind, &[&[&str]]); 13] = [
+const GROUP_A: [(&str, u64, EventKind, &[&[&str]]); 15] = [
     ("limit_test_first", 40, EventKind::TextNote, &[&["t", "a"]]),
     ("limit_test_third", 50, EventKind::TextNote, &[&["t", "a"]]),
     ("limit_test_second", 45, EventKind::TextNote, &[&["t", "b"]]),
@@ -71,6 +71,24 @@ const GROUP_A: [(&str, u64, EventKind, &[&[&str]]); 13] = [
         60,
         EventKind::FollowSets,
         &[&["d", "1"]],
+    ),
+    (
+        "older_replaceable",
+        80,
+        EventKind::BookmarkList,
+        &[&[
+            "e",
+            "65f07794c052916f434d2a40ad4e3c58c1c287d829b999977a7221c0ebadab0a",
+        ]],
+    ),
+    (
+        "newer_replaceable",
+        60,
+        EventKind::BookmarkList,
+        &[&[
+            "e",
+            "65f07794c052916f434d2a40ad4e3c58c1c287d829b999977a7221c0ebadab0a",
+        ]],
     ),
 ];
 

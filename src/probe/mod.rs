@@ -245,7 +245,7 @@ impl Probe {
         }
     }
 
-    pub async fn get_replaceables(
+    pub async fn get_replaceables_of_author_and_kind(
         &mut self,
         author: PublicKey,
         kind: EventKind,
