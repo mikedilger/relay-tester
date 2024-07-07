@@ -84,7 +84,7 @@ impl Probe {
 
     /// Disconnect nicely from the relay
     pub async fn exit(self) -> Result<(), Error> {
-        self.sender.send(Command::Exit).await.unwrap();
+        self.sender.send(Command::Exit).await?;
         if let Some(join_handle) = self.join_handle {
             join_handle.await?;
         }
@@ -95,7 +95,7 @@ impl Probe {
     /// Disconnect from the relay, wait for `delay`, and then reconnect
     /// This resets our AuthState
     pub async fn reconnect(&mut self, delay: Duration) -> Result<(), Error> {
-        self.sender.send(Command::Exit).await.unwrap();
+        self.sender.send(Command::Exit).await?;
 
         let mut join_handle: Option<JoinHandle<()>> = None;
         std::mem::swap(&mut self.join_handle, &mut join_handle);

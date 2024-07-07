@@ -30,7 +30,9 @@ async fn main() -> Result<(), Error> {
 
     runner.run().await;
 
-    runner.exit().await?;
+    if let Err(e) = runner.exit().await {
+        eprintln!("{}", e);
+    }
 
     println!("\nRESULTS:");
     let results = &(*(*RESULTS).read().unwrap());
