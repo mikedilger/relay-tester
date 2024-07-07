@@ -188,6 +188,7 @@ impl Runner {
             "TESTING REPLACEABLES".color(Color::LightBlue)
         );
         self.test_replaceables_basic().await?;
+        self.test_replaceable_behavior().await?;
 
         // test_ephemeral
 
@@ -242,10 +243,12 @@ impl Runner {
         (id, raw_event)
     }
 
-    async fn test_fetch_by_filter_group_a(&mut self, filter: Filter, outcome_name: &'static str) {
-        // create an iterator over events that posted successfully to the relay
-        // to pass into probe.fetch_events_and_check (which will check that all of these
-        // which match the filter come back)
+    async fn test_fetch_by_filter_group_a(
+        &mut self,
+        filter: Filter,
+        outcome_name: &'static str,
+        num_matches_expected: Option<usize>,
+    ) {
         let given = self
             .event_group_a
             .iter()
@@ -264,9 +267,23 @@ impl Runner {
             }
         };
 
-        set_outcome_by_name(
-            outcome_name,
-            Outcome::new(true, Some(format!("matched {} events", matches))),
-        );
+        if let Some(expected) = num_matches_expected {
+            if matches == expected {
+                set_outcome_by_name(
+                    outcome_name,
+                    Outcome::new(true, None)
+                );
+            } else {
+                set_outcome_by_name(
+                    outcome_name,
+                    Outcome::new(false, Some(format!("matched {} events, expected {}", matches, expected))),
+                );
+            }
+        } else {
+            set_outcome_by_name(
+                outcome_name,
+                Outcome::new(true, Some(format!("matched {} events", matches))),
+            );
+        }
     }
 }

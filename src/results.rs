@@ -67,8 +67,8 @@ impl fmt::Display for TestDef {
     }
 }
 
-pub const NUMTESTS: usize = 59;
-pub const TESTDEFS: [(bool, &str); 59] = [
+pub const NUMTESTS: usize = 61;
+pub const TESTDEFS: [(bool, &str); 61] = [
     // PREAUTH TESTS
     // -------------
 
@@ -164,9 +164,10 @@ pub const TESTDEFS: [(bool, &str); 59] = [
     // STRANGER TESTS
     // --------------
 
-    /*
     (true, "find_replaceable_event"),
     (true, "find_parameterized_replaceable_event"),
+
+    /*
     (true, "replaceable_event_removes_previous"),
     (true, "replaceable_event_doesnt_remove_future"),
     (true, "parameterized_replaceable_event_removes_previous"),

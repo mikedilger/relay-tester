@@ -148,6 +148,7 @@ impl Runner {
             filter.kinds = vec![EventKind::TextNote];
             filter
         };
+
         let outcome = match self.probe.fetch_check_close(vec![filter]).await {
             Ok(_) => Outcome::new(true, None),
             Err(Error::Timeout(_)) => Outcome::new(false, None),
@@ -418,6 +419,7 @@ impl Runner {
         let ids: Vec<IdHex> = self
             .event_group_a
             .iter()
+            .filter(|(_, (_e, r))| *r)
             .map(|(_, (e, _r))| e.id.into())
             .collect();
         if ids.is_empty() {
@@ -429,12 +431,13 @@ impl Runner {
                 ),
             );
         } else {
+            let num = ids.len();
             let filter = {
                 let mut filter = Filter::new();
                 filter.ids = ids;
                 filter
             };
-            self.test_fetch_by_filter_group_a(filter, "find_by_id")
+            self.test_fetch_by_filter_group_a(filter, "find_by_id", Some(num))
                 .await;
         }
 
@@ -446,7 +449,7 @@ impl Runner {
             filter.kinds = vec![EventKind::TextNote, EventKind::ContactList];
             filter
         };
-        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey_and_kind")
+        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey_and_kind", None)
             .await;
 
         let filter = {
@@ -456,7 +459,7 @@ impl Runner {
             filter.add_tag_value('p', pkh.to_string());
             filter
         };
-        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey_and_tags")
+        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey_and_tags", None)
             .await;
 
         let filter = {
@@ -465,7 +468,7 @@ impl Runner {
             filter.add_tag_value('n', "approved".to_string());
             filter
         };
-        self.test_fetch_by_filter_group_a(filter, "find_by_kind_and_tags")
+        self.test_fetch_by_filter_group_a(filter, "find_by_kind_and_tags", None)
             .await;
 
         let filter = {
@@ -473,7 +476,7 @@ impl Runner {
             filter.add_tag_value('k', "3036".to_string());
             filter
         };
-        self.test_fetch_by_filter_group_a(filter, "find_by_tags")
+        self.test_fetch_by_filter_group_a(filter, "find_by_tags", None)
             .await;
 
         let filter = {
@@ -486,7 +489,7 @@ impl Runner {
             filter.limit = Some(20);
             filter
         };
-        self.test_fetch_by_filter_group_a(filter, "find_by_multiple_tags")
+        self.test_fetch_by_filter_group_a(filter, "find_by_multiple_tags", None)
             .await;
 
         let filter = {
@@ -495,15 +498,12 @@ impl Runner {
             filter.add_author(&pkh);
             filter
         };
-        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey")
+        self.test_fetch_by_filter_group_a(filter, "find_by_pubkey", None)
             .await;
 
         let filter = Filter::new();
-        self.test_fetch_by_filter_group_a(filter, "find_by_scrape")
+        self.test_fetch_by_filter_group_a(filter, "find_by_scrape", None)
             .await;
-
-        //"find_replaceable_event",
-        //"find_parameterized_replaceable_event",
     }
 
     pub async fn test_event_validation(&mut self) {
@@ -716,6 +716,7 @@ impl Runner {
         let ids: Vec<IdHex> = self
             .event_group_a
             .iter()
+            .filter(|(_, (_e, r))| *r)
             .map(|(_, (e, _r))| e.id.into())
             .collect();
         let filter = {
@@ -885,6 +886,104 @@ impl Runner {
                 );
             }
         };
+
+        Ok(())
+    }
+
+    pub async fn test_replaceable_behavior(&mut self) -> Result<(), Error> {
+
+        let (newer_replaceable, ok) = self.event_group_a.get("newer_replaceable").unwrap();
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = newer_replaceable.pubkey.into();
+            filter.add_author(&pkh);
+            filter.add_event_kind(newer_replaceable.kind);
+            filter
+        };
+        if !ok {
+            set_outcome_by_name(
+                "find_replaceable_event",
+                Outcome::new(false, Some("Replaceable event was not accepted".to_owned()))
+            );
+        } else {
+            self.test_fetch_by_filter_group_a(
+                filter,
+                "find_replaceable_event",
+                Some(1)
+            ).await;
+        }
+
+        /*
+        // This should have injected ok, but then been replaced
+        let (older_replaceable, ok) = self.event_group_a.get("older_replaceable").unwrap();
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = older_replaceable.pubkey.into();
+            filter.add_author(&pkh);
+            filter.add_event_kind(older_replaceable.kind);
+            filter
+        };
+        if !ok {
+            set_outcome_by_name(
+                "find_replaceable_event",
+                Outcome::new(false, Some("Replaceable event was not accepted".to_owned()))
+            );
+        } else {
+            self.test_fetch_by_filter_group_a(
+                filter,
+                "find_replaceable_event"
+            ).await;
+        }
+
+    (true, "replaceable_event_removes_previous"),
+    (true, "replaceable_event_doesnt_remove_future"),
+    (true, "parameterized_replaceable_event_removes_previous"),
+    (true, "parameterized_replaceable_event_doesnt_remove_future"),
+
+        self.test_fetch_by_filter_group_a(
+            filter,
+            "find_replaceable_event"
+        ).await;
+
+
+        // GINA
+        */
+
+        let (newer_param_replaceable, ok) = self.event_group_a.get("newer_param_replaceable").unwrap();
+        let filter = {
+            let mut filter = Filter::new();
+            let pkh: PublicKeyHex = newer_param_replaceable.pubkey.into();
+            filter.add_author(&pkh);
+            filter.add_event_kind(newer_param_replaceable.kind);
+            filter.add_tag_value('d', "1".to_owned());
+            filter
+        };
+        if !ok {
+            set_outcome_by_name(
+                "find_parameterized_replaceable_event",
+                Outcome::new(false, Some("Parameterized replaceable event was not accepted".to_owned()))
+            );
+        } else {
+            self.test_fetch_by_filter_group_a(
+                filter,
+                "find_parameterized_replaceable_event",
+                Some(1)
+            ).await;
+        }
+
+        /*
+        // This should have injected ok, but then been replaced
+        let (_older_param_replaceable, _) = self.event_group_a.get("older_param_replaceable").unwrap();
+        // GINA
+        */
+
+
+        /*
+        "replaceable_event_removes_previous"
+        "replaceable_event_doesnt_remove_future"
+        "parameterized_replaceable_event_removes_previous"
+        "parameterized_replaceable_event_doesnt_remove_future"
+         */
 
         Ok(())
     }
