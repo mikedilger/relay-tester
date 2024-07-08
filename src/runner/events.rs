@@ -42,27 +42,58 @@ pub struct EventData {
     pub minutes_ago: u64,
     pub kind: EventKind,
     pub can_read_back: bool,
-    pub tags: &'static [&'static [&'static str]]
+    pub tags: &'static [&'static [&'static str]],
 }
 
 impl EventData {
-    pub const fn new(data: (&'static str, u64, EventKind, bool, &'static [&'static [&'static str]])) -> EventData {
+    pub const fn new(
+        data: (
+            &'static str,
+            u64,
+            EventKind,
+            bool,
+            &'static [&'static [&'static str]],
+        ),
+    ) -> EventData {
         EventData {
             name: data.0,
             minutes_ago: data.1,
             kind: data.2,
             can_read_back: data.3,
-            tags: data.4
+            tags: data.4,
         }
     }
 }
 
-
 pub const GROUP_A: [EventData; 15] = [
-    EventData::new(("limit_test_first", 40, EventKind::TextNote, true, &[&["t", "a"]])),
-    EventData::new(("limit_test_third", 50, EventKind::TextNote, true, &[&["t", "a"]])),
-    EventData::new(("limit_test_second", 45, EventKind::TextNote, true, &[&["t", "b"]])),
-    EventData::new(("limit_test_fourth", 55, EventKind::TextNote, true, &[&["t", "b"]])),
+    EventData::new((
+        "limit_test_first",
+        40,
+        EventKind::TextNote,
+        true,
+        &[&["t", "a"]],
+    )),
+    EventData::new((
+        "limit_test_third",
+        50,
+        EventKind::TextNote,
+        true,
+        &[&["t", "a"]],
+    )),
+    EventData::new((
+        "limit_test_second",
+        45,
+        EventKind::TextNote,
+        true,
+        &[&["t", "b"]],
+    )),
+    EventData::new((
+        "limit_test_fourth",
+        55,
+        EventKind::TextNote,
+        true,
+        &[&["t", "b"]],
+    )),
     EventData::new(("metadata_older", 60, EventKind::Metadata, false, &[])),
     EventData::new(("metadata_newer", 0, EventKind::Metadata, true, &[])),
     EventData::new(("contactlist_newer", 10, EventKind::ContactList, true, &[])),

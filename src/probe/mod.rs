@@ -4,8 +4,8 @@ use inner::ProbeInner;
 use crate::error::Error;
 use http::Uri;
 use nostr_types::{
-    Event, EventKind, Filter, Id, IdHex, PreEvent, RelayMessage, Signer,
-    SubscriptionId, Tag, Unixtime,
+    Event, EventKind, Filter, Id, IdHex, PreEvent, RelayMessage, Signer, SubscriptionId, Tag,
+    Unixtime,
 };
 use std::time::Duration;
 use tokio::sync::mpsc::{Receiver, Sender};
@@ -302,9 +302,13 @@ impl Probe {
     /// returned set.
     ///
     /// Returns the events, as well as how many given events were matched.
-    pub async fn fetch_events_and_check<'a, I>(&mut self, filters: Vec<Filter>, given: I)
-                                               -> Result<(Vec<Event>, usize), Error>
-        where I: Iterator<Item=&'a Event>
+    pub async fn fetch_events_and_check<'a, I>(
+        &mut self,
+        filters: Vec<Filter>,
+        given: I,
+    ) -> Result<(Vec<Event>, usize), Error>
+    where
+        I: Iterator<Item = &'a Event>,
     {
         let events = self.fetch_events(filters.clone()).await?;
 
@@ -319,7 +323,7 @@ impl Probe {
 
         // Check that these all match the filters
         for event in events.iter() {
-            if ! matches_filters(event) {
+            if !matches_filters(event) {
                 return Err(Error::EventDoesNotMatchFilters);
             }
         }

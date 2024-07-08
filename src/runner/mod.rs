@@ -36,16 +36,9 @@ impl Runner {
 
         let mut event_group_a: HashMap<&'static str, (Event, bool)> = HashMap::new();
         for data in events::GROUP_A.iter() {
-            let event = events::build_event_ago(
-                &registered_user,
-                data.minutes_ago,
-                data.kind,
-                data.tags
-            );
-            event_group_a.insert(
-                data.name,
-                (event, data.can_read_back)
-            );
+            let event =
+                events::build_event_ago(&registered_user, data.minutes_ago, data.kind, data.tags);
+            event_group_a.insert(data.name, (event, data.can_read_back));
         }
 
         Runner {
@@ -138,7 +131,7 @@ impl Runner {
             let (ok, _why) = self.probe.post_event(&refval.0).await?;
 
             // Remember which events stored properly, so we can check against that set
-            if ! ok {
+            if !ok {
                 // Remember that we cannot read this one back, because the relay did not
                 // accept it
                 refval.1 = false;
@@ -253,14 +246,17 @@ impl Runner {
         // create an iterator over events that posted successfully to the relay
         // to pass into probe.fetch_events_and_check (which will check that all of these
         // which match the filter come back)
-        let given = self.event_group_a.iter()
-            .filter(|(_,(_e,r))| *r)
-            .map(|(_,(e,_r))| e);
+        let given = self
+            .event_group_a
+            .iter()
+            .filter(|(_, (_e, r))| *r)
+            .map(|(_, (e, _r))| e);
 
-        let (_events, matches) = match self.probe.fetch_events_and_check(
-            vec![filter.clone()],
-            given
-        ).await {
+        let (_events, matches) = match self
+            .probe
+            .fetch_events_and_check(vec![filter.clone()], given)
+            .await
+        {
             Ok(pair) => pair,
             Err(e) => {
                 set_outcome_by_name(outcome_name, Outcome::new(false, Some(format!("{e}"))));
