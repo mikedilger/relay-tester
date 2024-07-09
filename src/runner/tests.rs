@@ -440,12 +440,10 @@ impl Runner {
 
         let filter = {
             let mut filter = Filter::new();
-            let pkh: PublicKeyHex = self.registered_user.public_key().into();
-            filter.add_author(&pkh);
-            let pkh: PublicKeyHex = self.stranger1.public_key().into();
-            filter.add_author(&pkh);
-            filter.add_event_kind(EventKind::TextNote);
-            filter.add_event_kind(EventKind::ContactList);
+            let pkh1: PublicKeyHex = self.registered_user.public_key().into();
+            let pkh2: PublicKeyHex = self.stranger1.public_key().into();
+            filter.authors = vec![pkh1, pkh2];
+            filter.kinds = vec![EventKind::TextNote, EventKind::ContactList];
             filter
         };
         self.test_fetch_by_filter_group_a(filter, "find_by_pubkey_and_kind")
@@ -463,9 +461,7 @@ impl Runner {
 
         let filter = {
             let mut filter = Filter::new();
-            filter.add_event_kind(EventKind::TextNote);
-            filter.add_event_kind(EventKind::Other(30383));
-            filter.add_event_kind(EventKind::ContactList);
+            filter.kinds = vec![EventKind::TextNote, EventKind::Other(30383), EventKind::ContactList];
             filter.add_tag_value('n', "approved".to_string());
             filter
         };

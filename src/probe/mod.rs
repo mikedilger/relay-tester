@@ -36,6 +36,7 @@ pub fn url_to_host_and_uri(url: &str) -> (String, Uri) {
 }
 
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub enum AuthState {
     #[default]
     NotYetRequested,
