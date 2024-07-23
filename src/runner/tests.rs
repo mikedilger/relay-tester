@@ -328,7 +328,7 @@ impl Runner {
         set_outcome_by_name("accepts_events_from_before_1970", outcome);
 
         // 1 year hence
-        let created_at = Unixtime::now().unwrap().add(Duration::new(86400 * 365, 0));
+        let created_at = Unixtime::now().add(Duration::new(86400 * 365, 0));
         let event = build_event(
             &self.registered_user,
             created_at,
@@ -510,7 +510,7 @@ impl Runner {
         // Create event with bad signature
         let pre_event = PreEvent {
             pubkey: self.registered_user.public_key(),
-            created_at: Unixtime::now().unwrap(),
+            created_at: Unixtime::now(),
             kind: EventKind::TextNote,
             tags: vec![],
             content: "This is a test.".to_owned(),
@@ -547,7 +547,7 @@ impl Runner {
     pub async fn test_event_json_edgecases(&mut self) {
         // Try including all nip01 escape sequences
         let (id, raw_event) = Self::create_raw_event(
-            &format!("{}", Unixtime::now().unwrap().0),
+            &format!("{}", Unixtime::now().0),
             "1",
             "[]",
             r##"linebreak\ndoublequote\"backslash\\carraigereturn\rtab\tbackspace\bformfeed\fend"##,
@@ -563,7 +563,7 @@ impl Runner {
 
         // Try including escape sequences not listed in nip01
         let (id, raw_event) = Self::create_raw_event(
-            &format!("{}", Unixtime::now().unwrap().0),
+            &format!("{}", Unixtime::now().0),
             "1",
             "[]",
             r#"\u0000\u0001\u0002\u0003\u0004\u0005\u0006\u0007 \u000b \u000e \u000f \u0010\u0011\u0012\u0013\u0014\u0015\u0016 \/"#,
@@ -579,7 +579,7 @@ impl Runner {
 
         // Try including all nip01 escape sequences as literals instead of escapes
         let (id, raw_event) = Self::create_raw_event(
-            &format!("{}", Unixtime::now().unwrap().0),
+            &format!("{}", Unixtime::now().0),
             "1",
             "[]",
             "linebreak\ndoublequote\"backslash\\carraigereturn\rtab\tbackspace\x08formfeed\x0cend",
@@ -597,7 +597,7 @@ impl Runner {
         // &[0xef, 0xb7, 0x91, 0xf4, 0x8f, 0xbf, 0xb2];
         // https://www.unicode.org/faq/private_use.html#noncharacters
         let (id, raw_event) = Self::create_raw_event(
-            &format!("{}", Unixtime::now().unwrap().0),
+            &format!("{}", Unixtime::now().0),
             "1",
             "[]",
             std::str::from_utf8(&[0xef, 0xb7, 0x91, 0xf4, 0x8f, 0xbf, 0xb2]).unwrap(),
@@ -627,7 +627,7 @@ impl Runner {
 
     pub async fn test_misc_events(&mut self) {
         let (id, raw_event) = Self::create_raw_event(
-            &format!("{}", Unixtime::now().unwrap().0),
+            &format!("{}", Unixtime::now().0),
             "1",
             "[[],[]]",
             "this event has two empty tags",

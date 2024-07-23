@@ -9,7 +9,6 @@ pub fn build_event_ago(
     intags: &[&[&str]],
 ) -> Event {
     let created_at = Unixtime::now()
-        .unwrap()
         .sub(Duration::new(minutes_ago * 60, 0));
     build_event(user, created_at, kind, intags)
 }

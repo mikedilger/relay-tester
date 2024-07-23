@@ -401,7 +401,7 @@ impl Probe {
         if let AuthState::Challenged(ref challenge) = self.auth_state {
             let pre_event = PreEvent {
                 pubkey: signer.public_key(),
-                created_at: Unixtime::now().unwrap(),
+                created_at: Unixtime::now(),
                 kind: EventKind::Auth,
                 tags: vec![
                     Tag::new(&["relay", &self.relay_url]),
