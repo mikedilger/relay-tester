@@ -578,11 +578,12 @@ impl Runner {
         set_outcome_by_name("accepts_unlisted_json_escape_sequences", outcome);
 
         // Try including all nip01 escape sequences as literals instead of escapes
+        // (except we cant use a literal double quote)
         let (id, raw_event) = Self::create_raw_event(
             &format!("{}", Unixtime::now().0),
             "1",
             "[]",
-            "linebreak\ndoublequote\"backslash\\carraigereturn\rtab\tbackspace\x08formfeed\x0cend",
+            "linebreak\nbackslash\\carraigereturn\rtab\tbackspace\x08formfeed\x0cend",
             &self.registered_user,
         )
         .await;
