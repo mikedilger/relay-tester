@@ -8,7 +8,10 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 mod events;
-mod tests;
+
+mod pre_auth_tests;
+mod registered_tests;
+mod stranger_tests;
 
 pub struct Runner {
     relay_url: String,
@@ -93,28 +96,63 @@ impl Runner {
 
     // Tests that run before authenticating
     async fn run_preauth_tests(&mut self) -> Result<(), Error> {
-        eprintln!("\n{} -----", "TESTING NIP-11".color(Color::LightBlue));
-        self.test_nip11().await;
+        // nip11_provided
+        // claimed_support_for_nip4
+        // claimed_support_for_nip9
+        // claimed_support_for_nip11
+        // claimed_support_for_nip26
+        // claimed_support_for_nip29
+        // claimed_support_for_nip40
+        // claimed_support_for_nip42
+        // claimed_support_for_nip45
+        // claimed_support_for_nip50
+        // claimed_support_for_nip59
+        // claimed_support_for_nip65
+        // claimed_support_for_nip94
+        // claimed_support_for_nip96
+        {
+            eprintln!("\n{} -----", "TESTING NIP-11".color(Color::LightBlue));
+            self.test_nip11().await;
+        }
 
-        eprintln!(
-            "\n{} -----",
-            "TESTING INITIAL AUTH PROMPT".color(Color::LightBlue)
-        );
-        self.test_prompts_for_auth_initially().await;
+        // prompts_for_auth_initially
+        {
+            eprintln!(
+                "\n{} -----",
+                "TESTING INITIAL AUTH PROMPT".color(Color::LightBlue)
+            );
+            self.test_prompts_for_auth_initially().await;
+        }
 
-        eprintln!("\n{} -----", "TESTING EOSE".color(Color::LightBlue));
-        self.test_eose().await;
+        // supports_eose
+        // closes_complete_subscriptions_after_eose
+        // keeps_open_incomplete_subscriptions_after_eose
+        {
+            eprintln!("\n{} -----", "TESTING EOSE".color(Color::LightBlue));
+            self.test_eose().await;
+        }
 
-        eprintln!("\n{} -----", "TESTING OK".color(Color::LightBlue));
-        self.test_ok().await;
+        // sends_ok_after_event
+        {
+            eprintln!("\n{} -----", "TESTING OK".color(Color::LightBlue));
+            self.test_ok().await;
+        }
 
         eprintln!(
             "\n{} ----- ",
             "TESTING PUBLIC ACCESS".color(Color::LightBlue)
         );
+
+        // public_can_write
         self.test_public_access().await;
+
+        // accepts_relay_lists_from_public
         self.test_public_relay_lists().await;
+
+        // accepts_dm_relay_lists_from_public
         self.test_public_dm_relay_lists().await;
+
+        // accepts_ephemeral_events_from_public
         self.test_public_ephemeral_events().await;
 
         Ok(())
@@ -138,69 +176,132 @@ impl Runner {
             }
         }
 
-        // Test event validation
-        eprintln!(
-            "\n{} ----- ",
-            "TESTING EVENT VALIDATION".color(Color::LightBlue)
-        );
-        self.test_event_validation().await;
+        // verifies_signatures
+        // verifies_id_hashes
+        {
+            eprintln!(
+                "\n{} ----- ",
+                "TESTING EVENT VALIDATION".color(Color::LightBlue)
+            );
+            self.test_event_validation().await;
+        }
 
-        // Test JSON edge cases
-        eprintln!(
-            "\n{} ----- ",
-            "TESTING JSON EDGE CASES".color(Color::LightBlue)
-        );
-        self.test_event_json_edgecases().await;
+        // accepts_nip1_json_escape_sequences
+        // accepts_unlisted_json_escape_sequences
+        // accepts_literals_for_json_escape_sequences
+        // accepts_utf8_non_characters
+        {
+            eprintln!(
+                "\n{} ----- ",
+                "TESTING JSON EDGE CASES".color(Color::LightBlue)
+            );
+            self.test_event_json_edgecases().await;
+        }
 
-        // Test created_at
-        eprintln!(
-            "\n{} ----- ",
-            "TESTING CREATED_AT VARIATIONS".color(Color::LightBlue)
-        );
-        self.test_created_at_events().await?;
+        // accepts_events_one_week_okd
+        // accepts_events_one_month_old
+        // accepts_events_one_year_old
+        // accepts_events_from_before_nostr
+        // accepts_events_from_before_2000
+        // accepts_events_from_1970
+        // accepts_events_from_before_1970
+        // accepts_events_one_year_into_the_future
+        // accepts_events_in_the_distant_future
+        // accepts_events_with_created_at_greater_than_signed32bit
+        // accepts_events_with_created_at_greater_than_unsigned32bit
+        // accepts_events_with_created_at_in_scientific_notation
+        {
+            eprintln!(
+                "\n{} ----- ",
+                "TESTING CREATED_AT VARIATIONS".color(Color::LightBlue)
+            );
+            self.test_created_at_events().await?;
+        }
 
-        // Test misc events
-        eprintln!("\n{} ----- ", "TESTING MISC EVENTS".color(Color::LightBlue));
-        self.test_misc_events().await;
+        // accepts_events_with_empty_tags
+        {
+            eprintln!("\n{} ----- ", "TESTING MISC EVENTS".color(Color::LightBlue));
+            self.test_misc_events().await;
+        }
 
-        // Test ephemeral events
-        eprintln!(
-            "\n{} ----- ",
-            "TESTING EPHEMERAL EVENTS".color(Color::LightBlue)
-        );
-        self.test_ephemeral_events().await;
+        // ephemeral_subscriptions_work
+        // persists_ephemeral_events
+        {
+            eprintln!(
+                "\n{} ----- ",
+                "TESTING EPHEMERAL EVENTS".color(Color::LightBlue)
+            );
+            self.test_ephemeral_events().await;
+        }
 
-        // Test REQ event order
-        eprintln!("\n{} ----- ", "TESTING EVENT ORDER".color(Color::LightBlue));
-        self.test_event_order().await;
+        // events_ordered_from_newest_to_oldest
+        {
+            eprintln!("\n{} ----- ", "TESTING EVENT ORDER".color(Color::LightBlue));
+            self.test_event_order().await;
+        }
 
-        // Test LIMIT
-        eprintln!("\n{} -----", "TESTING LIMIT".color(Color::LightBlue));
-        self.test_limit().await;
+        // newest_events_when_limited
+        {
+            eprintln!("\n{} -----", "TESTING LIMIT".color(Color::LightBlue));
+            self.test_limit().await;
+        }
 
-        // Test fetches (FIXME to use injected events)
-        eprintln!("\n{} ----- ", "TESTING FETCHES".color(Color::LightBlue));
-        self.test_fetches().await;
+        // find_by_id
+        // find_by_pubkey_and_kind
+        // find_by_pubkey_and_tags
+        // find_by_kind_and_tags
+        // find_by_tags
+        // find_by_multiple_tags
+        // find_by_pubkey
+        // find_by_scrape
+        {
+            // FIXME to use injected events
+            eprintln!("\n{} ----- ", "TESTING FETCHES".color(Color::LightBlue));
+            self.test_fetches().await;
+        }
 
-        // Test replaceables
-        eprintln!(
-            "\n{} ----- ",
-            "TESTING REPLACEABLES".color(Color::LightBlue)
-        );
-        self.test_replaceables_basic().await?;
-        self.test_replaceable_behavior().await?;
-
-        // test_ephemeral
+        // accepts_metadata
+        // replaces_metadata
+        // replaced_events_still_available_by_id
+        // accepts_contactlist
+        // replaces_contactlist
+        // TBD:  replaceable_event_removes_previous
+        // TBD:  replaceable_event_doesnt_remove_future
+        // TBD:  parameterized_replaceable_event_removes_previous
+        // TBD:  parameterized_replaceable_event_doesnt_remove_future
+        {
+            eprintln!(
+                "\n{} ----- ",
+                "TESTING REPLACEABLES".color(Color::LightBlue)
+            );
+            self.test_replaceables_basic().await?;
+        }
 
         // test_replacable_deletes
+        // TBD: ?
 
         // test_deletes
+        // TBD: ?
 
         Ok(())
     }
 
     // Tests that run as a stranger
     async fn run_stranger_tests(&mut self) -> Result<(), Error> {
+        // find_replaceable_event
+        // find_parameterized_replaceable_event
+
+        {
+            eprintln!(
+                "\n{} ----- ",
+                "TESTING REPLACEABLE FINDS".color(Color::LightBlue)
+            );
+            self.test_replaceable_behavior().await?;
+        }
+
+        // test_ephemeral
+        // TBD: ?
+
         Ok(())
     }
 
@@ -269,14 +370,14 @@ impl Runner {
 
         if let Some(expected) = num_matches_expected {
             if matches == expected {
-                set_outcome_by_name(
-                    outcome_name,
-                    Outcome::new(true, None)
-                );
+                set_outcome_by_name(outcome_name, Outcome::new(true, None));
             } else {
                 set_outcome_by_name(
                     outcome_name,
-                    Outcome::new(false, Some(format!("matched {} events, expected {}", matches, expected))),
+                    Outcome::new(
+                        false,
+                        Some(format!("matched {} events, expected {}", matches, expected)),
+                    ),
                 );
             }
         } else {

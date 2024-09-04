@@ -100,10 +100,9 @@ pub const TESTDEFS: [(bool, &str); 61] = [
     (false, "accepts_relay_lists_from_public"),
     (false, "accepts_dm_relay_lists_from_public"),
     (false, "accepts_ephemeral_events_from_public"),
-    // (injection happens here)
-
     // REGISTERED TESTS
     // ----------------
+    // (injection happens here)
 
     //   EVENT VALIDATION
     (true, "verifies_signatures"),
@@ -159,21 +158,21 @@ pub const TESTDEFS: [(bool, &str); 61] = [
     (false, "replaced_events_still_available_by_id"),
     (true, "accepts_contactlist"),
     (true, "replaces_contactlist"),
+    //(true, "replaceable_event_removes_previous"),
+    //(true, "replaceable_event_doesnt_remove_future"),
+    //(true, "parameterized_replaceable_event_removes_previous"),
+    //(true, "parameterized_replaceable_event_doesnt_remove_future"),
+
     // (disconnect and reconnect happens here, no longer AUTHed)
 
     // STRANGER TESTS
     // --------------
-
     (true, "find_replaceable_event"),
     (true, "find_parameterized_replaceable_event"),
+    // (true, "since_until_include_equals"),
+    // (true, "limit_zero"),
 
     /*
-    (true, "replaceable_event_removes_previous"),
-    (true, "replaceable_event_doesnt_remove_future"),
-    (true, "parameterized_replaceable_event_removes_previous"),
-    (true, "parameterized_replaceable_event_doesnt_remove_future"),
-    (true, "since_until_include_equals"),
-    (true, "limit_zero"),
     (true, "event_always_gets_ok_reply"),
     (false, "auth_always_gets_ok_reply"),
     (true, "limit_works_across_multiple_filter_groups"),
