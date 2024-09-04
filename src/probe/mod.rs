@@ -13,7 +13,7 @@ use tokio::task::JoinHandle;
 
 /// These are things we can ask the relay probe to do.
 /// Mostly they become messages to the relay.
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Command {
     Auth(Event),
     PostEvent(Event),
@@ -96,7 +96,7 @@ impl Probe {
     /// Disconnect from the relay, wait for `delay`, and then reconnect
     /// This resets our AuthState
     pub async fn reconnect(&mut self, delay: Duration) -> Result<(), Error> {
-        self.sender.send(Command::Exit).await?;
+        let _ = self.sender.send(Command::Exit).await;
 
         let mut join_handle: Option<JoinHandle<()>> = None;
         std::mem::swap(&mut self.join_handle, &mut join_handle);
@@ -189,13 +189,20 @@ impl Probe {
     }
 
     /// Send a command to the inner probe and on to the relay
-    pub async fn send(&self, command: Command) {
-        self.sender.send(command).await.unwrap()
+    pub async fn send(&mut self, command: Command) -> Result<(), Error> {
+        if let Err(e) = self.sender.send(command.clone()).await {
+            eprintln!("{}", e);
+            eprintln!("Waiting 15 seconds and reconnecting...");
+            self.reconnect(Duration::from_secs(15)).await?;
+            Ok(self.sender.send(command).await?)
+        } else {
+            Ok(())
+        }
     }
 
     /// Post an event
     pub async fn post_event(&mut self, event: &Event) -> Result<(bool, String), Error> {
-        self.send(Command::PostEvent(event.to_owned())).await;
+        self.send(Command::PostEvent(event.to_owned())).await?;
         loop {
             let rm = self.wait_for_a_response().await?;
             if let RelayMessage::Ok(ok_id, ok, reason) = rm {
@@ -252,7 +259,7 @@ impl Probe {
         event: &str,
         event_id: Id,
     ) -> Result<(bool, String), Error> {
-        self.send(Command::PostRawEvent(event.to_owned())).await;
+        self.send(Command::PostRawEvent(event.to_owned())).await?;
         loop {
             let rm = self.wait_for_a_response().await?;
             if let RelayMessage::Ok(ok_id, ok, reason) = rm {
@@ -269,7 +276,7 @@ impl Probe {
         let sub_id = SubscriptionId(format!("sub{}", self.next_sub_id));
         self.next_sub_id += 1;
         self.send(Command::FetchEvents(sub_id.clone(), filters))
-            .await;
+            .await?;
         let mut events: Vec<Event> = Vec::new();
         loop {
             let rm = self.wait_for_a_response().await?;
@@ -371,7 +378,7 @@ impl Probe {
         let sub_id = SubscriptionId(format!("sub{}", self.next_sub_id));
         self.next_sub_id += 1;
         self.send(Command::FetchEvents(sub_id.clone(), filters))
-            .await;
+            .await?;
         let mut eose: bool = false;
         loop {
             let rm = self.wait_for_a_response().await?;
