@@ -1,6 +1,6 @@
 [package]
 name = "relay-tester"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 authors = ["Mike Dilger <mike@mikedilger.com>"]
 description = "Relay test suite for nostr relays"
@@ -18,18 +18,20 @@ path = "src/bin/generate_keypair.rs"
 
 [dependencies]
 base64 = "0.21"
-colorful = "0.2"
+colorful = "0.3"
 futures-util = "0.3"
 http = "1.1"
 lazy_static = "1.4"
 nostr-types = { git = "https://github.com/mikedilger/nostr-types" }
+parking_lot = { version = "0.12", features = [ "deadlock_detection" ] }
 rand = "0.8"
 rand_core = "0.6"
 reqwest = "0.12"
 secp256k1 = { version = "0.29", features = [ "hashes", "global-context", "rand-std", "serde" ] }
 serde = { version = "1.0", features = [ "derive" ] }
 serde_json = "1.0"
-textnonce = "1"
+strum = "0.26"
+strum_macros = "0.26"
 tokio = { version = "1", features = ["full"] }
-tokio-tungstenite = { version = "0.21", features = [ "connect", "handshake", "rustls-tls-webpki-roots" ] }
-tungstenite = { version = "0.21", features = [ "rustls-tls-webpki-roots" ] }
+tokio-tungstenite = { version = "0.23", features = [ "connect", "handshake", "rustls-tls-webpki-roots" ] }
+tungstenite = { version = "0.23", features = [ "rustls-tls-webpki-roots" ] }

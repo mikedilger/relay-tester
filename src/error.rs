@@ -1,54 +1,34 @@
-use crate::probe::{Command, AuthState};
-use nostr_types::RelayMessage;
 use std::error::Error as StdError;
 use std::fmt;
 
 #[derive(Debug)]
 pub enum Error {
-    CannotPost,
-    ChannelIsClosed,
-    EventDoesNotMatchFilters,
-    EventMismatch,
-    EventNotAccepted(String),
-    ExpectedEventIsMissing,
-    ExpectedOneEvent(usize),
-    FailedToAuth(AuthState),
-    SubClosed(String),
-    General(String),
+    Disconnected,
     Http(http::Error),
     Join(tokio::task::JoinError),
     Json(serde_json::Error),
     NostrTypes(nostr_types::Error),
-    NotChallenged,
+    PrerequisiteEventSubmissionFailed,
     Reqwest(reqwest::Error),
-    SendCommand(tokio::sync::mpsc::error::SendError<Command>),
-    SendRelayMessage(tokio::sync::mpsc::error::SendError<RelayMessage>),
     Timeout(tokio::time::error::Elapsed),
+    TimedOut,
     Websocket(tungstenite::Error),
 }
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
         match self {
-            Error::CannotPost => write!(f, "Cannot post benign event as registered user"),
-            Error::ChannelIsClosed => write!(f, "Channel is closed"),
-            Error::EventDoesNotMatchFilters => write!(f, "Event does not match filters"),
-            Error::EventMismatch => write!(f, "Event fetched does not match event submitted"),
-            Error::EventNotAccepted(s) => write!(f, "Event not accepted: {s}"),
-            Error::ExpectedEventIsMissing => write!(f, "Expected event is missing"),
-            Error::ExpectedOneEvent(u) => write!(f, "Expected one event, but got {u}"),
-            Error::FailedToAuth(a) => write!(f, "Failed to auth: {:?}", a),
-            Error::SubClosed(s) => write!(f, "Subscription closed: {}", s),
-            Error::General(s) => write!(f, "General: {s}"),
+            Error::Disconnected => write!(f, "Disconnected"),
             Error::Http(e) => write!(f, "Http: {e}"),
             Error::Join(e) => write!(f, "Tokio join: {e}"),
             Error::Json(e) => write!(f, "JSON: {e}"),
             Error::NostrTypes(e) => write!(f, "nostr-types: {e}"),
-            Error::NotChallenged => write!(f, "Not challenged for AUTH"),
+            Error::PrerequisiteEventSubmissionFailed => {
+                write!(f, "Prerequisite event submission failed")
+            }
             Error::Reqwest(e) => write!(f, "Http: {e}"),
-            Error::SendCommand(e) => write!(f, "Send Command: {e}"),
-            Error::SendRelayMessage(e) => write!(f, "Send Relay Message: {e}"),
             Error::Timeout(e) => write!(f, "Timeout: {e}"),
+            Error::TimedOut => write!(f, "Timed out"),
             Error::Websocket(e) => write!(f, "Websocket: {e}"),
         }
     }
@@ -62,8 +42,6 @@ impl StdError for Error {
             Error::Json(inner) => Some(inner),
             Error::NostrTypes(inner) => Some(inner),
             Error::Reqwest(inner) => Some(inner),
-            Error::SendCommand(inner) => Some(inner),
-            Error::SendRelayMessage(inner) => Some(inner),
             Error::Timeout(inner) => Some(inner),
             Error::Websocket(inner) => Some(inner),
             _ => None,
@@ -98,18 +76,6 @@ impl From<nostr_types::Error> for Error {
 impl From<reqwest::Error> for Error {
     fn from(e: reqwest::Error) -> Error {
         Error::Reqwest(e)
-    }
-}
-
-impl From<tokio::sync::mpsc::error::SendError<Command>> for Error {
-    fn from(e: tokio::sync::mpsc::error::SendError<Command>) -> Error {
-        Error::SendCommand(e)
-    }
-}
-
-impl From<tokio::sync::mpsc::error::SendError<RelayMessage>> for Error {
-    fn from(e: tokio::sync::mpsc::error::SendError<RelayMessage>) -> Error {
-        Error::SendRelayMessage(e)
     }
 }
 

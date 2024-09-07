@@ -1,15 +1,25 @@
+#![allow(clippy::await_holding_lock)] // we aren't really parallel, doesn't matter.
+
+mod connection;
 mod error;
-mod probe;
-mod results;
-mod runner;
+mod event_group;
+mod globals;
+mod outcome;
+mod stage;
+mod test_item;
+mod tests;
 
 use crate::error::Error;
-use crate::results::{TestDef, NUMTESTS, RESULTS, TESTDEFS};
-use crate::runner::Runner;
+use crate::globals::{Globals, GLOBALS};
+use crate::outcome::Outcome;
+use crate::stage::Stage;
+use crate::test_item::TestItem;
 use colorful::{Color, Colorful};
-use lazy_static::lazy_static;
 use nostr_types::PrivateKey;
 use std::env;
+use strum::IntoEnumIterator;
+
+const WAIT: u64 = 2;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
@@ -26,23 +36,73 @@ async fn main() -> Result<(), Error> {
         None => return usage(),
     };
 
-    let mut runner = Runner::new(relay_url, private_key);
+    // post-static init of global variables
+    Globals::init(relay_url, private_key).await?;
 
-    runner.run().await;
+    // deadlock detection thread
+    {
+        use parking_lot::deadlock;
+        use std::thread;
+        use std::time::Duration;
 
-    if let Err(e) = runner.exit().await {
-        eprintln!("{}", e);
+        thread::spawn(move || loop {
+            thread::sleep(Duration::from_secs(10));
+            let deadlocks = deadlock::check_deadlock();
+            if deadlocks.is_empty() {
+                continue;
+            }
+
+            println!("{} deadlocks detected", deadlocks.len());
+            for (i, threads) in deadlocks.iter().enumerate() {
+                println!("Deadlock #{}", i);
+                for t in threads {
+                    println!("Threadn Id {:#?}", t.thread_id());
+                    println!("{:#?}", t.backtrace());
+                }
+            }
+        });
     }
 
-    println!("\nRESULTS:");
-    let results = &(*(*RESULTS).read().unwrap());
-    for i in 0..NUMTESTS {
-        let testdef = TestDef {
-            required: TESTDEFS[i].0,
-            name: TESTDEFS[i].1,
-            outcome: results[i].clone(),
-        };
-        println!("{}", testdef);
+    // Run the tests in stages
+    for stage in Stage::iter() {
+        eprintln!("-----------------------------------------------------");
+        eprintln!(
+            "*** Stage: {} ***",
+            format!("{:?}", stage).color(Color::Green3a)
+        );
+        stage.init().await?;
+        for test_item in TestItem::iter() {
+            if test_item.stage() == stage {
+                eprintln!("  * TEST: {}", test_item.name());
+
+                let outcome = if stage == Stage::Unknown {
+                    Outcome::err("Test has not been assigned to a stage yet.".to_owned())
+                } else {
+                    test_item.run().await
+                };
+
+                GLOBALS.test_results.write().insert(test_item, outcome);
+            }
+        }
+    }
+
+    GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .disconnect()
+        .await?;
+
+    // Display the results
+    eprintln!("====================================================");
+    println!("SUMMARY RESULTS\n");
+    for (test_item, outcome) in GLOBALS.test_results.read().iter() {
+        println!(
+            "{}: {}",
+            test_item.name(),
+            outcome.display(test_item.required())
+        );
     }
 
     Ok(())
@@ -54,16 +114,4 @@ fn usage() -> Result<(), Error> {
         "Usage".color(Color::Gold1)
     );
     Ok(())
-}
-
-// Colorful prefixes for terminal output
-pub struct Prefixes {
-    from_relay: String,
-    sending: String,
-}
-lazy_static! {
-    pub static ref PREFIXES: Prefixes = Prefixes {
-        from_relay: "Relay".color(Color::Blue).to_string(),
-        sending: "Sending".color(Color::MediumPurple).to_string(),
-    };
 }
