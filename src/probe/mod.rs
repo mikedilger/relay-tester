@@ -35,8 +35,7 @@ pub fn url_to_host_and_uri(url: &str) -> (String, Uri) {
     (host.to_owned(), uri)
 }
 
-#[derive(Debug, Clone, Default)]
-#[allow(dead_code)]
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub enum AuthState {
     #[default]
     NotYetRequested,
@@ -421,6 +420,10 @@ impl Probe {
 
             self.auth_state = AuthState::InProgress(event.id);
             self.sender.send(Command::Auth(event)).await.unwrap();
+            self.wait_for_a_response().await?;
+            if self.auth_state != AuthState::Success {
+                return Err(Error::FailedToAuth(self.auth_state.clone()));
+            }
             Ok(())
         } else {
             Err(Error::NotChallenged)

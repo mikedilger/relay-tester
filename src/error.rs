@@ -1,4 +1,4 @@
-use crate::probe::Command;
+use crate::probe::{Command, AuthState};
 use nostr_types::RelayMessage;
 use std::error::Error as StdError;
 use std::fmt;
@@ -12,6 +12,7 @@ pub enum Error {
     EventNotAccepted(String),
     ExpectedEventIsMissing,
     ExpectedOneEvent(usize),
+    FailedToAuth(AuthState),
     SubClosed(String),
     General(String),
     Http(http::Error),
@@ -36,6 +37,7 @@ impl fmt::Display for Error {
             Error::EventNotAccepted(s) => write!(f, "Event not accepted: {s}"),
             Error::ExpectedEventIsMissing => write!(f, "Expected event is missing"),
             Error::ExpectedOneEvent(u) => write!(f, "Expected one event, but got {u}"),
+            Error::FailedToAuth(a) => write!(f, "Failed to auth: {:?}", a),
             Error::SubClosed(s) => write!(f, "Subscription closed: {}", s),
             Error::General(s) => write!(f, "General: {s}"),
             Error::Http(e) => write!(f, "Http: {e}"),
