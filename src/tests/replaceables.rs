@@ -225,25 +225,25 @@ pub async fn replaced_events_still_available_by_id() -> Result<Outcome, Error> {
     }
 }
 
-//pub async fn replaceable_event_removes_previous() -> Result<Outcome, Error> {
-//    maybe_submit_event_group_a().await?;
-//    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
-//}
+pub async fn replaceable_event_removes_previous() -> Result<Outcome, Error> {
+    maybe_submit_event_group_a().await?;
+    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+}
 
-//pub async fn replaceable_event_doesnt_remove_future() -> Result<Outcome, Error> {
-//    maybe_submit_event_group_a().await?;
-//    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
-//}
+pub async fn replaceable_event_doesnt_remove_future() -> Result<Outcome, Error> {
+    maybe_submit_event_group_a().await?;
+    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+}
 
-//pub async fn addressable_event_removes_previous() -> Result<Outcome, Error> {
-//    maybe_submit_event_group_a().await?;
-//    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
-//}
+pub async fn addressable_event_removes_previous() -> Result<Outcome, Error> {
+    maybe_submit_event_group_a().await?;
+    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+}
 
-//pub async fn addressable_event_doesnt_remove_future() -> Result<Outcome, Error> {
-//    maybe_submit_event_group_a().await?;
-//    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
-//}
+pub async fn addressable_event_doesnt_remove_future() -> Result<Outcome, Error> {
+    maybe_submit_event_group_a().await?;
+    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+}
 
 pub async fn find_replaceable_event() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;

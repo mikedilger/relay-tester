@@ -1,6 +1,8 @@
 pub mod auth;
+pub mod delete;
 pub mod eose;
 pub mod ephemeral;
+pub mod filters;
 pub mod find;
 pub mod json;
 pub mod misc_events;

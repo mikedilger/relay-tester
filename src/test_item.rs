@@ -75,7 +75,9 @@ pub enum TestItem {
     FindByMultipleTags,
     FindByPubkey,
     FindByScrape,
-    SinceUntilIncludeEquals,
+
+    // Registered: filters
+    SinceUntilAreInclusive,
     LimitZero,
 
     // Registered: ephemeral
@@ -95,30 +97,22 @@ pub enum TestItem {
     FindReplaceableEvent,
     FindAddressableEvent,
 
+    // Registered: delete
+    DeleteById,
+    DeleteByAddr,
+    DeleteByAddrOnlyDeletesOlder,
+    DeleteByAddrIsBoundByTag,
+    DeleteByIdOfOthers,
+    DeleteByAddrOfOthers,
+    ResubmissionOfDeletedById,
+    ResubmissionOfOlderDeletedByAddr,
+    ResubmissionOfNewerDeletedByAddr,
+
     // TBD
     LimitWorksAcrossMultipleFilterGroups,
     ServesPostEoseEvents,
     NoTimeoutWhileSubscribed,
     Nip4DmsRequireAuth,
-    /*
-    DeleteById,
-    RejectsDeleteByIdOfOthers,
-    RejectsResubmissionOfDeletedById,
-    DeleteByATag,
-    NoDeleteByATagOfOthers,
-    DeleteByNpAddrPreservesNewer,
-    NoResubmissionOfDeletedByNpnaddr,
-    NoResubmissionOfOlderThanDeletedByNpnaddr,
-    ResubmissionOfNewerThanDeletedByNpnaddr,
-    DeleteByPnaddr,
-    NoDeleteByPnaddrOfOthers,
-    DeleteByPnaddrPreservesNewer,
-    DeleteByPnaddrBoundByDtag,
-    NoResubmissionOfDeletedByPnaddr,
-    NoResubmissionOfOlderThanDeletedByPnaddr,
-    ResubmissionOfNewerThanDeletedByPnaddr,
-    DeletedReturnsOkFalse,
-    */
     CanAuthAsUnknown,
     UnknownCanWriteOwn,
     UnknownCanReadbackOwn,
@@ -149,6 +143,7 @@ impl TestItem {
         use TestItem::*;
 
         match *self {
+            // Pre-Auth: nip11
             Nip11Provided => "NIP-11 document is provided",
             ClaimsSupportForNip4 => "Claims support for NIP-04 (old DMs)",
             ClaimsSupportForNip9 => "Claims support for NIP-09 (Deletion)",
@@ -163,23 +158,35 @@ impl TestItem {
             ClaimsSupportForNip65 => "Claims support for NIP-65 (Relay Lists)",
             ClaimsSupportForNip94 => "Claims support for NIP-94 (File Metadata)",
             ClaimsSupportForNip96 => "Claims support for NIP-96 (HTTP file storage)",
+
+            // Pre-Auth: auth
             PromptsForAuthInitially => "Prompts for AUTH when client connects",
+
+            // Pre-Auth: eose
             SupportsEose => "Supports EOSE",
             ClosesCompleteSubscriptionsAfterEose => "Closes complete subscriptions after EOSE",
             KeepsOpenIncompleteSubscriptionsAfterEose => {
                 "Keeps open incomplete subscriptions after EOSE"
             }
+
+            // Pre-Auth: public
             PublicCanWrite => "Public can write",
             AcceptsRelayListsFromPublic => "Accepts relay lists from the public",
             AcceptsDmRelayListsFromPublic => "Accepts DM relay lists from the public",
             AcceptsEphemeralEventsFromPublic => "Accepts ephemeral events from the public",
+
+            // Registered: reg
             SendsOkAfterEvent => "Sends OK after EVENT",
             VerifiesSignatures => "Verifies event signatures",
             VerifiesIdHashes => "Verifies event ID hashes",
+
+            // Registered: json
             AcceptsNip1JsonEscapeSequences => "Accepts NIP-01 JSON escape sequences",
             AcceptsUnlistedJsonEscapeSequences => "Accepts unlisted JSON escape sequences",
             AcceptsLiteralsForJsonEscapeSequences => "Accepts literals for JSON escape sequences",
             AcceptsUtf8NonCharacters => "Accepts UTF-8 non-characters",
+
+            // Registered: time
             AcceptsEventsOneWeekOld => "Accepts event.created_at one week old",
             AcceptsEventsOneMonthOld => "Accepts event.created_at one month old",
             AcceptsEventsOneYearOld => "Accepts event.created_at one year old",
@@ -200,9 +207,11 @@ impl TestItem {
             AcceptsEventsWithCreatedAtInScientificNotation => {
                 "Accepts event.created_at in scientific notation"
             }
+
+            // Registered: misc events
             AcceptsEventsWithEmptyTags => "Accepts events with empty tags",
-            EphemeralSubscriptionsWork => "Ephemeral subscriptions work",
-            PersistsEphemeralEvents => "Persists ephemeral events",
+
+            // Registered: find
             EventsOrderedFromNewestToOldest => "Events are ordered from newest to oldest",
             NewestEventsWhenLimited => "Newest events are returned when filter is limited",
             FindById => "Finds by id",
@@ -213,43 +222,48 @@ impl TestItem {
             FindByMultipleTags => "Finds by multiple tags",
             FindByPubkey => "Finds by pubkey",
             FindByScrape => "Finds by scrape",
+
+            // Registered: filters
+            SinceUntilAreInclusive => "Since and until filters are inclusive",
+            LimitZero => "Limit zero works",
+
+            // Registered: ephemeral
+            EphemeralSubscriptionsWork => "Ephemeral subscriptions work",
+            PersistsEphemeralEvents => "Persists ephemeral events",
+
+            // Registered: replaceables
             AcceptsMetadata => "Accepts metadata",
             ReplacesMetadata => "Replaces metadata",
-            ReplacedEventsStillAvailableById => "Replaced events are still available by ID",
             AcceptsContactlist => "Accepts Contactlists",
             ReplacesContactlist => "Replaces Contactlists",
+            ReplacedEventsStillAvailableById => "Replaced events are still available by ID",
             ReplaceableEventRemovesPrevious => "Replaceable events replace older ones",
             ReplaceableEventDoesntRemoveFuture => "Replaceable events don't replace newer ones",
             AddressableEventRemovesPrevious => "Addressable events replace older ones",
             AddressableEventDoesntRemoveFuture => "Addressable events don't replace newer ones",
             FindReplaceableEvent => "Finds replaceable events",
             FindAddressableEvent => "Finds addressable events",
-            SinceUntilIncludeEquals => "Since and until filters include endpoints",
-            LimitZero => "Limit zero works",
+
+            // Registered: delete
+            DeleteById => "Deletes by id",
+            DeleteByAddr => "Deletes by a-tag address",
+            DeleteByAddrOnlyDeletesOlder => "Delete by a-tag deletes older but not newer",
+            DeleteByAddrIsBoundByTag => "Delete by a-tag is bound by a-tag",
+            DeleteByIdOfOthers => "Cannot delete by id of other people's events",
+            DeleteByAddrOfOthers => "Cannot delete by a-tag of other people's events",
+            ResubmissionOfDeletedById => "Resubmission of deleted-by-id event is rejected",
+            ResubmissionOfOlderDeletedByAddr => {
+                "Resubmission of older deleted-by-addr event is rejected"
+            }
+            ResubmissionOfNewerDeletedByAddr => {
+                "Resubmission of newer deleted-by-addr event is accepted"
+            }
+
+            // TBD
             LimitWorksAcrossMultipleFilterGroups => "Limit works across multiple filter groups",
             ServesPostEoseEvents => "Serves post-EOSE events",
             NoTimeoutWhileSubscribed => "No timeout while subscribed",
             Nip4DmsRequireAuth => "Nip-04 DMs require AUTH",
-            GiftwrapsRequireAuth => "Giftwraps require AUTH",
-            /*
-            DeleteById => "Deletes by id",
-            RejectsDeleteByIdOfOthers => "Rejects delete by ID of others",
-            RejectsResubmissionOfDeletedById => "Rejects resubmission of deleted by ID",
-            DeleteByATag => "Deletes by a-tag",
-            NoDeleteByATagOfOthers => "Rejects delete by a-tag of others",
-            DeleteByNpAddrPreservesNewer => "DeleteByNpAddrPreservesNewer",
-            NoResubmissionOfDeletedByNpnaddr => "ResubmissionOfDeletedByNpnaddr",
-            NoResubmissionOfOlderThanDeletedByNpnaddr => "ResubmissionOfOlderThanDeletedByNpnaddr",
-            ResubmissionOfNewerThanDeletedByNpnaddr => "ResubmissionOfNewerThanDeletedByNpnaddr",
-            DeleteByPnaddr => "DeleteByPnaddr",
-            NoDeleteByPnaddrOfOthers => "DeleteByPnaddrOfOthers",
-            DeleteByPnaddrPreservesNewer => "DeleteByPnaddrPreservesNewer",
-            DeleteByPnaddrBoundByDtag => "DeleteByPnaddrBoundByDtag",
-            NoResubmissionOfDeletedByPnaddr => "ResubmissionOfOlderThanDeletedByPnaddr",
-            NoResubmissionOfOlderThanDeletedByPnaddr => "ResubmissionOfOlderThanDeletedByPnaddr",
-            ResubmissionOfNewerThanDeletedByPnaddr => "ResubmissionOfNewerThanDeletedByPnaddr",
-            DeletedReturnsOkFalse => "DeletedReturnsOkFalse",
-            */
             CanAuthAsUnknown => "Can AUTH as unknown",
             UnknownCanWriteOwn => "Unknown can write own",
             UnknownCanReadbackOwn => "Unknown can read back own",
@@ -260,6 +274,7 @@ impl TestItem {
             KnownCanReadbackOwn => "Known can read back own",
             KnownCanWriteOther => "Known can write other",
             KnownCanReadbackOther => "Known can readback other",
+            GiftwrapsRequireAuth => "Giftwraps require AUTH",
             LargeContactLists => "Supports large contact lists",
             PreservesJsonFieldOrder => "Preserves JSON field order",
             PreservesNonstandardJsonFields => "Preserves Non-standard JSON fields",
@@ -279,6 +294,7 @@ impl TestItem {
         use TestItem::*;
 
         match *self {
+            // Pre-Auth: nip11
             Nip11Provided => false,
             ClaimsSupportForNip4 => false,
             ClaimsSupportForNip9 => false,
@@ -293,21 +309,33 @@ impl TestItem {
             ClaimsSupportForNip65 => false,
             ClaimsSupportForNip94 => false,
             ClaimsSupportForNip96 => false,
+
+            // Pre-Auth: auth
             PromptsForAuthInitially => false,
+
+            // Pre-Auth: eose
             SupportsEose => true,
             ClosesCompleteSubscriptionsAfterEose => false,
             KeepsOpenIncompleteSubscriptionsAfterEose => true,
+
+            // Pre-Auth: public
             PublicCanWrite => false,
             AcceptsRelayListsFromPublic => false,
             AcceptsDmRelayListsFromPublic => false,
             AcceptsEphemeralEventsFromPublic => false,
+
+            // Registered: reg
             SendsOkAfterEvent => true,
             VerifiesSignatures => true,
             VerifiesIdHashes => true,
+
+            // Registered: json
             AcceptsNip1JsonEscapeSequences => true,
             AcceptsUnlistedJsonEscapeSequences => false,
             AcceptsLiteralsForJsonEscapeSequences => false,
             AcceptsUtf8NonCharacters => true,
+
+            // Registered: time
             AcceptsEventsOneWeekOld => true,
             AcceptsEventsOneMonthOld => false,
             AcceptsEventsOneYearOld => false,
@@ -320,9 +348,11 @@ impl TestItem {
             AcceptsEventsWithCreatedAtGreaterThanSigned32Bit => false,
             AcceptsEventsWithCreatedAtGreaterThanUnsigned32Bit => false,
             AcceptsEventsWithCreatedAtInScientificNotation => false,
+
+            // Registered: misc events
             AcceptsEventsWithEmptyTags => false,
-            EphemeralSubscriptionsWork => false,
-            PersistsEphemeralEvents => false,
+
+            // Registered: find
             EventsOrderedFromNewestToOldest => true,
             NewestEventsWhenLimited => true,
             FindById => true,
@@ -333,43 +363,45 @@ impl TestItem {
             FindByMultipleTags => true,
             FindByPubkey => true,
             FindByScrape => true,
+
+            // Registered: filters
+            SinceUntilAreInclusive => true,
+            LimitZero => true,
+
+            // Registered: ephemeral
+            EphemeralSubscriptionsWork => false,
+            PersistsEphemeralEvents => false,
+
+            // Registered: replaceables
             AcceptsMetadata => true,
             ReplacesMetadata => true,
-            ReplacedEventsStillAvailableById => false,
             AcceptsContactlist => true,
             ReplacesContactlist => true,
+            ReplacedEventsStillAvailableById => false,
             ReplaceableEventRemovesPrevious => true,
             ReplaceableEventDoesntRemoveFuture => true,
             AddressableEventRemovesPrevious => true,
             AddressableEventDoesntRemoveFuture => true,
             FindReplaceableEvent => true,
             FindAddressableEvent => true,
-            SinceUntilIncludeEquals => true,
-            LimitZero => true,
+
+            // Registered: delete
+            DeleteById => true,
+            DeleteByAddr => true,
+            DeleteByAddrOnlyDeletesOlder => true,
+            DeleteByAddrIsBoundByTag => true,
+            DeleteByIdOfOthers => true,
+            DeleteByAddrOfOthers => true,
+            ResubmissionOfDeletedById => true,
+            ResubmissionOfOlderDeletedByAddr => true,
+            ResubmissionOfNewerDeletedByAddr => true,
+
+            // TBD
             LimitWorksAcrossMultipleFilterGroups => true,
             ServesPostEoseEvents => true,
             NoTimeoutWhileSubscribed => true,
             Nip4DmsRequireAuth => false,
             GiftwrapsRequireAuth => true,
-            /*
-            DeleteById => true,
-            RejectsDeleteByIdOfOthers => true,
-            RejectsResubmissionOfDeletedById => true,
-            DeleteByATag => true,
-            NoDeleteByATagOfOthers => true,
-            DeleteByNpAddrPreservesNewer => true,
-            NoResubmissionOfDeletedByNpnaddr => true,
-            NoResubmissionOfOlderThanDeletedByNpnaddr => true,
-            ResubmissionOfNewerThanDeletedByNpnaddr => true,
-            DeleteByPnaddr => true,
-            NoDeleteByPnaddrOfOthers => true,
-            DeleteByPnaddrPreservesNewer => true,
-            DeleteByPnaddrBoundByDtag => true,
-            NoResubmissionOfDeletedByPnaddr => true,
-            NoResubmissionOfOlderThanDeletedByPnaddr => true,
-            ResubmissionOfNewerThanDeletedByPnaddr => true,
-            DeletedReturnsOkFalse => true,
-            */
             CanAuthAsUnknown => false,
             UnknownCanWriteOwn => true,
             UnknownCanReadbackOwn => true,
@@ -468,7 +500,9 @@ impl TestItem {
             FindByMultipleTags => Stage::Registered,
             FindByPubkey => Stage::Registered,
             FindByScrape => Stage::Registered,
-            SinceUntilIncludeEquals => Stage::Registered,
+
+            // Registered: filters
+            SinceUntilAreInclusive => Stage::Registered,
             LimitZero => Stage::Registered,
 
             // Registered: ephemeral
@@ -487,6 +521,17 @@ impl TestItem {
             AddressableEventDoesntRemoveFuture => Stage::Registered,
             FindReplaceableEvent => Stage::Registered,
             FindAddressableEvent => Stage::Registered,
+
+            // Registered: delete
+            DeleteById => Stage::Registered,
+            DeleteByAddr => Stage::Registered,
+            DeleteByAddrOnlyDeletesOlder => Stage::Registered,
+            DeleteByAddrIsBoundByTag => Stage::Registered,
+            DeleteByIdOfOthers => Stage::Registered,
+            DeleteByAddrOfOthers => Stage::Registered,
+            ResubmissionOfDeletedById => Stage::Registered,
+            ResubmissionOfOlderDeletedByAddr => Stage::Registered,
+            ResubmissionOfNewerDeletedByAddr => Stage::Registered,
 
             // TBD
             LimitWorksAcrossMultipleFilterGroups => Stage::Registered,
@@ -514,25 +559,6 @@ impl TestItem {
             // ...
             Nip4DmsRequireAuth => Stage::Stranger,
             GiftwrapsRequireAuth => Stage::Stranger,
-            /*
-            DeleteById => Stage::Unknown,
-            RejectsDeleteByIdOfOthers => Stage::Unknown,
-            RejectsResubmissionOfDeletedById => Stage::Unknown,
-            DeleteByATag => Stage::Unknown,
-            NoDeleteByATagOfOthers => Stage::Unknown,
-            DeleteByNpAddrPreservesNewer => Stage::Unknown,
-            NoResubmissionOfDeletedByNpnaddr => Stage::Unknown,
-            NoResubmissionOfOlderThanDeletedByNpnaddr => Stage::Unknown,
-            ResubmissionOfNewerThanDeletedByNpnaddr => Stage::Unknown,
-            DeleteByPnaddr => Stage::Unknown,
-            NoDeleteByPnaddrOfOthers => Stage::Unknown,
-            DeleteByPnaddrPreservesNewer => Stage::Unknown,
-            DeleteByPnaddrBoundByDtag => Stage::Unknown,
-            NoResubmissionOfDeletedByPnaddr => Stage::Unknown,
-            NoResubmissionOfOlderThanDeletedByPnaddr => Stage::Unknown,
-            ResubmissionOfNewerThanDeletedByPnaddr => Stage::Unknown,
-            DeletedReturnsOkFalse => Stage::Unknown,
-            */
             CanAuthAsUnknown => Stage::Stranger,
             UnknownCanWriteOwn => Stage::Stranger,
             UnknownCanReadbackOwn => Stage::Stranger,
@@ -545,8 +571,8 @@ impl TestItem {
         use TestItem::*;
 
         use crate::tests::{
-            auth, eose, ephemeral, find, json, misc_events, nip11, public, reg, replaceables, tbd,
-            time,
+            auth, delete, eose, ephemeral, filters, find, json, misc_events, nip11, public, reg,
+            replaceables, tbd, time,
         };
 
         let result = match *self {
@@ -629,8 +655,10 @@ impl TestItem {
             FindByMultipleTags => find::find_by_multiple_tags().await,
             FindByPubkey => find::find_by_pubkey().await,
             FindByScrape => find::find_by_scrape().await,
-            SinceUntilIncludeEquals => tbd(),
-            LimitZero => tbd(),
+
+            // Registered: filters
+            SinceUntilAreInclusive => filters::since_until_are_inclusive().await,
+            LimitZero => filters::limit_zero().await,
 
             // Registered: ephemeral
             EphemeralSubscriptionsWork => ephemeral::ephemeral_subscriptions_work().await,
@@ -644,37 +672,37 @@ impl TestItem {
             ReplacedEventsStillAvailableById => {
                 replaceables::replaced_events_still_available_by_id().await
             }
-            ReplaceableEventRemovesPrevious => tbd(),
-            ReplaceableEventDoesntRemoveFuture => tbd(),
-            AddressableEventRemovesPrevious => tbd(),
-            AddressableEventDoesntRemoveFuture => tbd(),
+            ReplaceableEventRemovesPrevious => {
+                replaceables::replaceable_event_removes_previous().await
+            }
+            ReplaceableEventDoesntRemoveFuture => {
+                replaceables::replaceable_event_doesnt_remove_future().await
+            }
+            AddressableEventRemovesPrevious => {
+                replaceables::addressable_event_removes_previous().await
+            }
+            AddressableEventDoesntRemoveFuture => {
+                replaceables::addressable_event_doesnt_remove_future().await
+            }
             FindReplaceableEvent => replaceables::find_replaceable_event().await,
             FindAddressableEvent => replaceables::find_addressable_event().await,
 
+            // Registered: delete
+            DeleteById => delete::delete_by_id().await,
+            DeleteByAddr => delete::delete_by_addr().await,
+            DeleteByAddrOnlyDeletesOlder => delete::delete_by_addr_only_older().await,
+            DeleteByAddrIsBoundByTag => delete::delete_by_addr_bound_by_tag().await,
+            DeleteByIdOfOthers => delete::delete_by_id_of_others().await,
+            DeleteByAddrOfOthers => delete::delete_by_addr_of_others().await,
+            ResubmissionOfDeletedById => delete::resubmission_of_delete_by_id().await,
+            ResubmissionOfOlderDeletedByAddr => {
+                delete::resubmission_of_older_delete_by_addr().await
+            }
+            ResubmissionOfNewerDeletedByAddr => {
+                delete::resubmission_of_newer_delete_by_addr().await
+            }
+
             // TBD
-            // EVENTs
-            // REQs
-            // DELETEs
-            /*
-            DeleteById => tbd(),
-            RejectsDeleteByIdOfOthers => tbd(),
-            RejectsResubmissionOfDeletedById => tbd(),
-            DeleteByATag => tbd(),
-            NoDeleteByATagOfOthers => tbd(),
-            DeleteByNpAddrPreservesNewer => tbd(),
-            NoResubmissionOfDeletedByNpnaddr => tbd(),
-            NoResubmissionOfOlderThanDeletedByNpnaddr => tbd(),
-            ResubmissionOfNewerThanDeletedByNpnaddr => tbd(),
-            DeleteByPnaddr => tbd(),
-            NoDeleteByPnaddrOfOthers => tbd(),
-            DeleteByPnaddrPreservesNewer => tbd(),
-            DeleteByPnaddrBoundByDtag => tbd(),
-            NoResubmissionOfDeletedByPnaddr => tbd(),
-            NoResubmissionOfOlderThanDeletedByPnaddr => tbd(),
-            ResubmissionOfNewerThanDeletedByPnaddr => tbd(),
-            DeletedReturnsOkFalse => tbd(),
-            */
-            // COMBOs
             LimitWorksAcrossMultipleFilterGroups => tbd(),
             ServesPostEoseEvents => tbd(),
             NoTimeoutWhileSubscribed => tbd(),
