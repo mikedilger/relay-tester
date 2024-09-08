@@ -98,6 +98,14 @@ async fn main() -> Result<(), Error> {
     eprintln!("====================================================");
     println!("SUMMARY RESULTS\n");
     for (test_item, outcome) in GLOBALS.test_results.read().iter() {
+
+        // Don't print the tests that are not yet implemented
+        if let Some(s) = &outcome.info {
+            if s.contains("NOT YET IMPLEMENTED") {
+                continue;
+            }
+        }
+
         println!(
             "{}: {}",
             test_item.name(),
