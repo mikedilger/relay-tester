@@ -91,9 +91,9 @@ pub enum TestItem {
     ReplacesContactlist,
     ReplacedEventsStillAvailableById,
     ReplaceableEventRemovesPrevious,
-    ReplaceableEventDoesntRemoveFuture,
+    ReplaceableEventRejectedIfFuture,
     AddressableEventRemovesPrevious,
-    AddressableEventDoesntRemoveFuture,
+    AddressableEventRejectedIfFuture,
     FindReplaceableEvent,
     FindAddressableEvent,
 
@@ -238,9 +238,9 @@ impl TestItem {
             ReplacesContactlist => "Replaces Contactlists",
             ReplacedEventsStillAvailableById => "Replaced events are still available by ID",
             ReplaceableEventRemovesPrevious => "Replaceable events replace older ones",
-            ReplaceableEventDoesntRemoveFuture => "Replaceable events don't replace newer ones",
+            ReplaceableEventRejectedIfFuture => "Replaceable events rejected if a newer one exists",
             AddressableEventRemovesPrevious => "Addressable events replace older ones",
-            AddressableEventDoesntRemoveFuture => "Addressable events don't replace newer ones",
+            AddressableEventRejectedIfFuture => "Addressable events rejected if a newer one exists",
             FindReplaceableEvent => "Finds replaceable events",
             FindAddressableEvent => "Finds addressable events",
 
@@ -379,9 +379,9 @@ impl TestItem {
             ReplacesContactlist => true,
             ReplacedEventsStillAvailableById => false,
             ReplaceableEventRemovesPrevious => true,
-            ReplaceableEventDoesntRemoveFuture => true,
+            ReplaceableEventRejectedIfFuture => true,
             AddressableEventRemovesPrevious => true,
-            AddressableEventDoesntRemoveFuture => true,
+            AddressableEventRejectedIfFuture => true,
             FindReplaceableEvent => true,
             FindAddressableEvent => true,
 
@@ -516,9 +516,9 @@ impl TestItem {
             ReplacesContactlist => Stage::Registered,
             ReplacedEventsStillAvailableById => Stage::Registered,
             ReplaceableEventRemovesPrevious => Stage::Registered,
-            ReplaceableEventDoesntRemoveFuture => Stage::Registered,
+            ReplaceableEventRejectedIfFuture => Stage::Registered,
             AddressableEventRemovesPrevious => Stage::Registered,
-            AddressableEventDoesntRemoveFuture => Stage::Registered,
+            AddressableEventRejectedIfFuture => Stage::Registered,
             FindReplaceableEvent => Stage::Registered,
             FindAddressableEvent => Stage::Registered,
 
@@ -675,14 +675,14 @@ impl TestItem {
             ReplaceableEventRemovesPrevious => {
                 replaceables::replaceable_event_removes_previous().await
             }
-            ReplaceableEventDoesntRemoveFuture => {
-                replaceables::replaceable_event_doesnt_remove_future().await
+            ReplaceableEventRejectedIfFuture => {
+                replaceables::replaceable_event_rejected_if_future().await
             }
             AddressableEventRemovesPrevious => {
                 replaceables::addressable_event_removes_previous().await
             }
-            AddressableEventDoesntRemoveFuture => {
-                replaceables::addressable_event_doesnt_remove_future().await
+            AddressableEventRejectedIfFuture => {
+                replaceables::addressable_event_rejected_if_future().await
             }
             FindReplaceableEvent => replaceables::find_replaceable_event().await,
             FindAddressableEvent => replaceables::find_addressable_event().await,
