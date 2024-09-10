@@ -171,7 +171,7 @@ async fn maybe_submit_event_group_a_inner() -> Result<(), Error> {
     lock.insert(
         "multipletags",
         EventParts::Dated(
-            EventKind::Other(30383),
+            EventKind::Other(40383),
             tags(&[&["k", "3036"], &["n", "approved"]]),
             "multipletags".to_owned(),
             minutes_ago(10),
@@ -183,7 +183,7 @@ async fn maybe_submit_event_group_a_inner() -> Result<(), Error> {
     lock.insert(
         "multipletags_shouldntmatch",
         EventParts::Dated(
-            EventKind::Other(30383),
+            EventKind::Other(40383),
             tags(&[&["n", "approved"]]),
             "multipletags_shouldntmatch".to_owned(),
             minutes_ago(10),
