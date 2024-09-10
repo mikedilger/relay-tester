@@ -28,3 +28,15 @@ the relay isn't already fully open to the public).
 ### STEP 4
 
 Run `relay-tester <url> <nsec>`
+
+
+## Using in a script
+
+To use in a script (e.g. continuous integration), pass the "--script" command line option
+before the url and nsec data.  It will then output only at the end, one line per result
+as JSON objects like this:
+
+```
+{"info":null,"pass":true,"required":true,"test":"Finds by multiple tags"}
+{"info":null,"pass":false,"required":false,"test":"Persists ephemeral events"}
+```
