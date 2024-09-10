@@ -1,15 +1,20 @@
 use super::tags;
-use crate::WAIT;
 use crate::error::Error;
 use crate::globals::{EventParts, Globals, GLOBALS};
 use crate::outcome::Outcome;
+use crate::WAIT;
 use nostr_types::{EventKind, Filter, Signer, Unixtime};
 use std::time::Duration;
 
 pub async fn since_until_are_inclusive() -> Result<Outcome, Error> {
     let time = Unixtime::now();
     let event = Globals::make_event(
-        EventParts::Dated(EventKind::JobRequest(5000), tags(&[&["test"]]), "".to_string(), time),
+        EventParts::Dated(
+            EventKind::JobRequest(5000),
+            tags(&[&["test"]]),
+            "".to_string(),
+            time,
+        ),
         true,
     )?;
 
@@ -57,9 +62,15 @@ pub async fn since_until_are_inclusive() -> Result<Outcome, Error> {
         .into_events();
 
     match (until_events.is_empty(), since_events.is_empty()) {
-        (true, true) => Ok(Outcome::fail(Some("since and until are exclusive".to_owned()))),
-        (false, true) => Ok(Outcome::fail(Some("since is exclusive (until is rightly inclusive)".to_owned()))),
-        (true, false) => Ok(Outcome::fail(Some("until is exclusive (since is rightly inclusive)".to_owned()))),
+        (true, true) => Ok(Outcome::fail(Some(
+            "since and until are exclusive".to_owned(),
+        ))),
+        (false, true) => Ok(Outcome::fail(Some(
+            "since is exclusive (until is rightly inclusive)".to_owned(),
+        ))),
+        (true, false) => Ok(Outcome::fail(Some(
+            "until is exclusive (since is rightly inclusive)".to_owned(),
+        ))),
         (false, false) => Ok(Outcome::pass(None)),
     }
 }
@@ -83,11 +94,17 @@ pub async fn limit_zero() -> Result<Outcome, Error> {
         .await?;
 
     if !fetch_result.pre_eose_events.is_empty() {
-        Ok(Outcome::fail(Some("Returned events pre-EOSE with limit 0".to_owned())))
+        Ok(Outcome::fail(Some(
+            "Returned events pre-EOSE with limit 0".to_owned(),
+        )))
     } else if fetch_result.post_eose_events.is_none() {
-        Ok(Outcome::fail(Some("Did not return an EOSE with limit 0, timed out".to_owned())))
+        Ok(Outcome::fail(Some(
+            "Did not return an EOSE with limit 0, timed out".to_owned(),
+        )))
     } else if let Some(msg) = fetch_result.close_msg {
-        Ok(Outcome::fail(Some(format!("Did EOSE but then closed the subscription: {msg}"))))
+        Ok(Outcome::fail(Some(format!(
+            "Did EOSE but then closed the subscription: {msg}"
+        ))))
     } else {
         Ok(Outcome::pass(None))
     }

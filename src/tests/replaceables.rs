@@ -253,7 +253,9 @@ pub async fn replaceable_event_removes_previous() -> Result<Outcome, Error> {
 
     // Make sure "older_replaceable" is not there
     if events.iter().any(|e| e.id == older_replaceable_id) {
-        Ok(Outcome::fail(Some("Older replaceable event was not replaced by newer one".to_owned())))
+        Ok(Outcome::fail(Some(
+            "Older replaceable event was not replaced by newer one".to_owned(),
+        )))
     } else {
         Ok(Outcome::pass(None))
     }
@@ -279,9 +281,13 @@ pub async fn replaceable_event_rejected_if_future() -> Result<Outcome, Error> {
         .await?;
 
     if ok {
-        return Ok(Outcome::fail(Some("Accepted an old superceded replaceable event".to_owned())));
+        return Ok(Outcome::fail(Some(
+            "Accepted an old superceded replaceable event".to_owned(),
+        )));
     } else {
-        return Ok(Outcome::pass(Some("Refused submission of older replaceable event".to_owned())));
+        return Ok(Outcome::pass(Some(
+            "Refused submission of older replaceable event".to_owned(),
+        )));
     }
 }
 
@@ -313,7 +319,9 @@ pub async fn addressable_event_removes_previous() -> Result<Outcome, Error> {
 
     // Make sure "older_param_replaceable" is not there
     if events.iter().any(|e| e.id == older_param_replaceable_id) {
-        Ok(Outcome::fail(Some("Older addressable event was not replaced by newer one".to_owned())))
+        Ok(Outcome::fail(Some(
+            "Older addressable event was not replaced by newer one".to_owned(),
+        )))
     } else {
         Ok(Outcome::pass(None))
     }
@@ -339,9 +347,13 @@ pub async fn addressable_event_rejected_if_future() -> Result<Outcome, Error> {
         .await?;
 
     if ok {
-        return Ok(Outcome::fail(Some("Accepted an old superceded addressable event".to_owned())));
+        return Ok(Outcome::fail(Some(
+            "Accepted an old superceded addressable event".to_owned(),
+        )));
     } else {
-        return Ok(Outcome::pass(Some("Refused submission of older addressable event".to_owned())));
+        return Ok(Outcome::pass(Some(
+            "Refused submission of older addressable event".to_owned(),
+        )));
     }
 }
 
