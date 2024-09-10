@@ -67,7 +67,7 @@ fn minutes_ago(m: u64) -> Unixtime {
 
 async fn doit(u: Unixtime) -> Result<Outcome, Error> {
     let event = Globals::make_event(
-        EventParts::Dated(EventKind::TextNote, tags(&[&[]]), "".to_owned(), u),
+        EventParts::Dated(EventKind::TextNote, tags(&[]), "".to_owned(), u),
         true,
     )?;
 
