@@ -4,7 +4,7 @@ use crate::error::Error;
 use crate::globals::GLOBALS; // EventParts, Globals
 use crate::outcome::Outcome;
 use crate::WAIT;
-use nostr_types::{EventKind, Filter, Id, Signer}; // PublicKeyHex;
+use nostr_types::{Event, EventKind, Filter, Id, Signer}; // PublicKeyHex;
 use std::time::Duration;
 
 pub async fn accepts_metadata() -> Result<Outcome, Error> {
@@ -227,22 +227,122 @@ pub async fn replaced_events_still_available_by_id() -> Result<Outcome, Error> {
 
 pub async fn replaceable_event_removes_previous() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+
+    let older_replaceable_id: Id = GLOBALS
+        .event_group_a
+        .read()
+        .get("older_replaceable")
+        .unwrap()
+        .0
+        .id;
+
+    let filter = {
+        let mut filter = Filter::new();
+        filter.kinds = vec![EventKind::BookmarkList];
+        filter
+    };
+
+    let events = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .await?
+        .into_events();
+
+    // Make sure "older_replaceable" is not there
+    if events.iter().any(|e| e.id == older_replaceable_id) {
+        Ok(Outcome::fail(Some("Older replaceable event was not replaced by newer one".to_owned())))
+    } else {
+        Ok(Outcome::pass(None))
+    }
 }
 
-pub async fn replaceable_event_doesnt_remove_future() -> Result<Outcome, Error> {
+pub async fn replaceable_event_rejected_if_future() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+
+    let event: Event = GLOBALS
+        .event_group_a
+        .read()
+        .get("older_replaceable")
+        .unwrap()
+        .0
+        .clone();
+
+    let (ok, _reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event, Duration::from_secs(WAIT))
+        .await?;
+
+    if ok {
+        return Ok(Outcome::fail(Some("Accepted an old superceded replaceable event".to_owned())));
+    } else {
+        return Ok(Outcome::pass(Some("Refused submission of older replaceable event".to_owned())));
+    }
 }
 
 pub async fn addressable_event_removes_previous() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+
+    let older_param_replaceable_id: Id = GLOBALS
+        .event_group_a
+        .read()
+        .get("older_param_replaceable")
+        .unwrap()
+        .0
+        .id;
+
+    let filter = {
+        let mut filter = Filter::new();
+        filter.kinds = vec![EventKind::FollowSets];
+        filter
+    };
+
+    let events = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .await?
+        .into_events();
+
+    // Make sure "older_param_replaceable" is not there
+    if events.iter().any(|e| e.id == older_param_replaceable_id) {
+        Ok(Outcome::fail(Some("Older addressable event was not replaced by newer one".to_owned())))
+    } else {
+        Ok(Outcome::pass(None))
+    }
 }
 
-pub async fn addressable_event_doesnt_remove_future() -> Result<Outcome, Error> {
+pub async fn addressable_event_rejected_if_future() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+
+    let event: Event = GLOBALS
+        .event_group_a
+        .read()
+        .get("older_param_replaceable")
+        .unwrap()
+        .0
+        .clone();
+
+    let (ok, _reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event, Duration::from_secs(WAIT))
+        .await?;
+
+    if ok {
+        return Ok(Outcome::fail(Some("Accepted an old superceded addressable event".to_owned())));
+    } else {
+        return Ok(Outcome::pass(Some("Refused submission of older addressable event".to_owned())));
+    }
 }
 
 pub async fn find_replaceable_event() -> Result<Outcome, Error> {
