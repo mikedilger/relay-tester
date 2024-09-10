@@ -152,7 +152,7 @@ impl TestItem {
             ClaimsSupportForNip29 => "Claims support for NIP-29 (Relay-based Groups)",
             ClaimsSupportForNip40 => "Claims support for NIP-40 (Expiration Timestamp)",
             ClaimsSupportForNip42 => "Claims support for NIP-42 (AUTH)",
-            ClaimsSupportForNip45 => "Claims supprort for NIP-45 (COUNT)",
+            ClaimsSupportForNip45 => "Claims support for NIP-45 (COUNT)",
             ClaimsSupportForNip50 => "Claims support for NIP-50 (SEARCH)",
             ClaimsSupportForNip59 => "Claims support for NIP-59 (Giftwrap)",
             ClaimsSupportForNip65 => "Claims support for NIP-65 (Relay Lists)",
