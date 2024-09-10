@@ -265,7 +265,6 @@ pub async fn delete_by_addr_only_older() -> Result<Outcome, Error> {
             "Failed to delete addressable event older than delete event".to_owned(),
         )))
     } else if !events.iter().any(|e| e.id == event3_id) {
-        println!("DEBUG: events = {:?}", events);
         Ok(Outcome::fail(Some(
             "Wrongly deleted addressable event newer than delete event".to_owned(),
         )))
