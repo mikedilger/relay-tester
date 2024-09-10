@@ -17,6 +17,7 @@ lazy_static! {
 }
 
 pub struct Globals {
+    pub script_mode: AtomicBool,
     pub relay_url: Arc<RwLock<String>>,
     pub connection: Arc<RwLock<Option<Connection>>>,
     pub disconnected: AtomicBool,
@@ -38,6 +39,7 @@ impl Globals {
         }
 
         Globals {
+            script_mode: AtomicBool::new(false),
             relay_url: Arc::new(RwLock::new("".to_owned())),
             connection: Arc::new(RwLock::new(None)),
             disconnected: AtomicBool::new(false),
@@ -55,7 +57,7 @@ impl Globals {
     pub async fn init(relay_url: String, private_key: PrivateKey) -> Result<(), Error> {
         *GLOBALS.relay_url.write() = relay_url;
         *GLOBALS.registered_user.write() = KeySigner::from_private_key(private_key, "", 8).unwrap();
-        eprintln!("{}", "*** CONNECTING ***".color(Color::Red));
+        log!("{}", "*** CONNECTING ***".color(Color::Red));
         let relay_url = GLOBALS.relay_url.read().clone();
         let connection = Connection::new(relay_url).await?;
         *GLOBALS.connection.write() = Some(connection);
