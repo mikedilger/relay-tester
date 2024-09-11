@@ -269,7 +269,10 @@ async fn find(filter: Filter, num_matches_expected: Option<usize>) -> Result<Out
                         e
                     ))));
                 } else {
-                    return Ok(Outcome::fail(Some(format!("Expected event is missing: {}", findable_event.id.as_hex_string()))));
+                    return Ok(Outcome::fail(Some(format!(
+                        "Expected event is missing: {}",
+                        findable_event.id.as_hex_string()
+                    ))));
                 }
             }
             matches += 1;

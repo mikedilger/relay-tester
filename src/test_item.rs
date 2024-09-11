@@ -107,6 +107,7 @@ pub enum TestItem {
     ResubmissionOfDeletedById,
     ResubmissionOfOlderDeletedByAddr,
     ResubmissionOfNewerDeletedByAddr,
+    DeletePropogatesToReferrers,
 
     // TBD
     LimitWorksAcrossMultipleFilterGroups,
@@ -258,6 +259,7 @@ impl TestItem {
             ResubmissionOfNewerDeletedByAddr => {
                 "Resubmission of newer deleted-by-addr event is accepted"
             }
+            DeletePropogatesToReferrers => "Deleting an event deletes its reactions",
 
             // TBD
             LimitWorksAcrossMultipleFilterGroups => "Limit works across multiple filter groups",
@@ -395,6 +397,7 @@ impl TestItem {
             ResubmissionOfDeletedById => true,
             ResubmissionOfOlderDeletedByAddr => true,
             ResubmissionOfNewerDeletedByAddr => true,
+            DeletePropogatesToReferrers => false,
 
             // TBD
             LimitWorksAcrossMultipleFilterGroups => true,
@@ -532,6 +535,7 @@ impl TestItem {
             ResubmissionOfDeletedById => Stage::Registered,
             ResubmissionOfOlderDeletedByAddr => Stage::Registered,
             ResubmissionOfNewerDeletedByAddr => Stage::Registered,
+            DeletePropogatesToReferrers => Stage::Registered,
 
             // TBD
             LimitWorksAcrossMultipleFilterGroups => Stage::Registered,
@@ -701,6 +705,7 @@ impl TestItem {
             ResubmissionOfNewerDeletedByAddr => {
                 delete::resubmission_of_newer_delete_by_addr().await
             }
+            DeletePropogatesToReferrers => tbd(),
 
             // TBD
             LimitWorksAcrossMultipleFilterGroups => tbd(),
