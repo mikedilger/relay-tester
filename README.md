@@ -18,16 +18,16 @@ Setup a fresh install of the relay for testing, with no events yet.
 
 ### STEP 2
 
-Generate a keypair. We have included a binary "generate_keypair" so you can do this.
+Generate two keypairs. We have included a binary "generate_keypair" so you can do this.
 
 ### STEP 3
 
-Configure the relay to allow the public key to have full access to the relay (in case
-the relay isn't already fully open to the public).
+Configure the relay to allow both generated public keys to have full access to the relay
+(in case the relay isn't already fully open to the public).
 
 ### STEP 4
 
-Run `relay-tester <url> <nsec>`
+Run `relay-tester <url> <nsec1> <nsec2>`
 
 
 ## Using in a script

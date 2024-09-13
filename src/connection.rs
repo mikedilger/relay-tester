@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::globals::{EventParts, Globals, GLOBALS};
+use crate::globals::{EventParts, Globals, User, GLOBALS};
 use base64::Engine;
 use colorful::{Color, Colorful};
 use futures_util::{SinkExt, StreamExt};
@@ -239,7 +239,7 @@ impl Connection {
         }
     }
 
-    pub async fn authenticate_registered_if_challenged(&mut self) -> Result<(), Error> {
+    pub async fn authenticate_if_challenged(&mut self, user: User) -> Result<(), Error> {
         if let AuthState::Challenged(challenge) = &self.auth_state {
             let event = Globals::make_event(
                 EventParts::Basic(
@@ -250,28 +250,7 @@ impl Connection {
                     ],
                     "".to_string(),
                 ),
-                true,
-            )?;
-            self.auth_state = AuthState::InProgress(event.id);
-            self.send_message(ClientMessage::Auth(Box::new(event)))
-                .await?;
-            let _ = self.wait_for_message(Duration::from_secs(1)).await?; // to await response
-        }
-        Ok(())
-    }
-
-    pub async fn authenticate_stranger_if_challenged(&mut self) -> Result<(), Error> {
-        if let AuthState::Challenged(challenge) = &self.auth_state {
-            let event = Globals::make_event(
-                EventParts::Basic(
-                    EventKind::Auth,
-                    vec![
-                        Tag::new(&["relay", &self.relay_url]),
-                        Tag::new(&["challenge", challenge]),
-                    ],
-                    "".to_string(),
-                ),
-                false,
+                user,
             )?;
             self.auth_state = AuthState::InProgress(event.id);
             self.send_message(ClientMessage::Auth(Box::new(event)))

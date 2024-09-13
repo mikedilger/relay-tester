@@ -1,6 +1,6 @@
 use super::tags;
 use crate::error::Error;
-use crate::globals::{EventParts, Globals, GLOBALS};
+use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
 use nostr_types::{EventKind, Unixtime};
@@ -68,7 +68,7 @@ fn minutes_ago(m: u64) -> Unixtime {
 async fn doit(u: Unixtime) -> Result<Outcome, Error> {
     let event = Globals::make_event(
         EventParts::Dated(EventKind::TextNote, tags(&[]), "".to_owned(), u),
-        true,
+        User::Registered1,
     )?;
 
     let (ok, reason) = GLOBALS
@@ -87,7 +87,7 @@ async fn doit(u: Unixtime) -> Result<Outcome, Error> {
 }
 
 async fn doit_raw(date: &str) -> Result<Outcome, Error> {
-    let (id, raw_event) = Globals::make_raw_event(date, "1", "[]", "", true);
+    let (id, raw_event) = Globals::make_raw_event(date, "1", "[]", "", User::Registered1);
 
     let (ok, reason) = GLOBALS
         .connection

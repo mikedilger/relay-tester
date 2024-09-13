@@ -53,7 +53,7 @@ pub async fn newest_to_oldest() -> Result<Outcome, Error> {
 pub async fn newest_events_when_limited() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
 
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
 
     let filter = {
         let mut filter = Filter::new();
@@ -127,7 +127,7 @@ pub async fn find_by_id() -> Result<Outcome, Error> {
 pub async fn find_by_pubkey_and_kind() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
 
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
     let stranger_public_key = GLOBALS.stranger.read().public_key();
 
     let filter = {
@@ -145,7 +145,7 @@ pub async fn find_by_pubkey_and_kind() -> Result<Outcome, Error> {
 pub async fn find_by_pubkey_and_tags() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
 
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
 
     let filter = {
         let mut filter = Filter::new();
@@ -190,7 +190,7 @@ pub async fn find_by_tags() -> Result<Outcome, Error> {
 pub async fn find_by_multiple_tags() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
 
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
 
     let filter = {
         let mut filter = Filter::new();
@@ -209,7 +209,7 @@ pub async fn find_by_multiple_tags() -> Result<Outcome, Error> {
 pub async fn find_by_pubkey() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
 
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
 
     let filter = {
         let mut filter = Filter::new();

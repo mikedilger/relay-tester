@@ -36,7 +36,8 @@ async fn main() -> Result<(), Error> {
     let _ = args.next(); // program name
 
     let mut relay_url_opt: Option<String> = None;
-    let mut private_key_opt: Option<String> = None;
+    let mut private_key1_opt: Option<String> = None;
+    let mut private_key2_opt: Option<String> = None;
     loop {
         if let Some(a) = args.next() {
             if a.starts_with("--") {
@@ -46,8 +47,10 @@ async fn main() -> Result<(), Error> {
                 }
             } else if relay_url_opt.is_none() {
                 relay_url_opt = Some(a);
-            } else if private_key_opt.is_none() {
-                private_key_opt = Some(a);
+            } else if private_key1_opt.is_none() {
+                private_key1_opt = Some(a);
+            } else if private_key2_opt.is_none() {
+                private_key2_opt = Some(a);
             } else {
                 return usage();
             }
@@ -61,13 +64,18 @@ async fn main() -> Result<(), Error> {
         None => return usage(),
     };
 
-    let private_key = match private_key_opt {
+    let private_key1 = match private_key1_opt {
+        Some(s) => PrivateKey::try_from_bech32_string(&s)?,
+        None => return usage(),
+    };
+
+    let private_key2 = match private_key2_opt {
         Some(s) => PrivateKey::try_from_bech32_string(&s)?,
         None => return usage(),
     };
 
     // post-static init of global variables
-    Globals::init(relay_url, private_key).await?;
+    Globals::init(relay_url, private_key1, private_key2).await?;
 
     // deadlock detection thread
     {
@@ -182,7 +190,7 @@ async fn main() -> Result<(), Error> {
 
 fn usage() -> Result<(), Error> {
     log!(
-        "{}: relay-tester <relay_url> <allowed_nsec>",
+        "{}: relay-tester <relay_url> <allowed_nsec1> <allowed_nsec2>",
         "Usage".color(Color::Gold1)
     );
     Ok(())

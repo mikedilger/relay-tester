@@ -1,6 +1,6 @@
 use super::tags;
 use crate::error::Error;
-use crate::globals::{EventParts, Globals, GLOBALS};
+use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
 use nostr_types::{EventKind, Filter, Signer, Unixtime};
@@ -15,7 +15,7 @@ pub async fn since_until_are_inclusive() -> Result<Outcome, Error> {
             "".to_string(),
             time,
         ),
-        true,
+        User::Registered1,
     )?;
 
     let (ok, reason) = GLOBALS
@@ -30,7 +30,7 @@ pub async fn since_until_are_inclusive() -> Result<Outcome, Error> {
         return Ok(Outcome::err(reason));
     }
 
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
 
     let base_filter = {
         let mut filter = Filter::new();
@@ -76,7 +76,7 @@ pub async fn since_until_are_inclusive() -> Result<Outcome, Error> {
 }
 
 pub async fn limit_zero() -> Result<Outcome, Error> {
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
 
     let filter = {
         let mut filter = Filter::new();

@@ -1,6 +1,6 @@
 use super::{minutes_ago, tags};
 use crate::error::Error;
-use crate::globals::{EventParts, Globals, GLOBALS};
+use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
 use nostr_types::{Event, EventKind, Filter, NAddr};
@@ -14,7 +14,7 @@ pub async fn delete_by_id() -> Result<Outcome, Error> {
             tags(&[&["test"]]),
             "I say wrong thing".to_string(),
         ),
-        true,
+        User::Registered1,
     )?;
     let event_id = event.id;
 
@@ -37,7 +37,7 @@ pub async fn delete_by_id() -> Result<Outcome, Error> {
             tags(&[&["e", &event_id.as_hex_string()]]),
             "".to_string(),
         ),
-        true,
+        User::Registered1,
     )?;
 
     // Submit it
@@ -81,7 +81,7 @@ pub async fn delete_by_addr() -> Result<Outcome, Error> {
             tags(&[&["d", "delete_by_addr_test"]]),
             "I say wrong thing".to_string(),
         ),
-        true,
+        User::Registered1,
     )?;
     let event_id = event.id;
 
@@ -118,7 +118,7 @@ pub async fn delete_by_addr() -> Result<Outcome, Error> {
             tags(&[&["a", &a_tag]]),
             "".to_string(),
         ),
-        true,
+        User::Registered1,
     )?;
 
     // Submit it
@@ -168,7 +168,7 @@ pub async fn delete_by_addr_only_older() -> Result<Outcome, Error> {
             "I say wrong thing".to_string(),
             time1,
         ),
-        true,
+        User::Registered1,
     )?;
     let event1_id = event1.id;
 
@@ -206,7 +206,7 @@ pub async fn delete_by_addr_only_older() -> Result<Outcome, Error> {
             "I say right thing".to_string(),
             time3,
         ),
-        true,
+        User::Registered1,
     )?;
     let event3_id = event3.id;
 
@@ -230,7 +230,7 @@ pub async fn delete_by_addr_only_older() -> Result<Outcome, Error> {
             "".to_string(),
             time2,
         ),
-        true,
+        User::Registered1,
     )?;
 
     // Submit it
@@ -276,7 +276,6 @@ pub async fn delete_by_addr_only_older() -> Result<Outcome, Error> {
 pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
     let mut events: Vec<Event> = vec![];
 
-
     // Make 4 events, the final 3 differing by the first by just one factor
     events.push(Globals::make_event(
         EventParts::Basic(
@@ -284,7 +283,7 @@ pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
             tags(&[&["d", "delete_by_addr_test_bound"]]),
             "I say wrong thing".to_string(),
         ),
-        true,
+        User::Registered1,
     )?);
     events.push(Globals::make_event(
         EventParts::Basic(
@@ -292,7 +291,7 @@ pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
             tags(&[&["d", "delete_by_addr_test_bound"]]),
             "I say wrong thing".to_string(),
         ),
-        false, // different author
+        User::Registered2, // different author
     )?);
     events.push(Globals::make_event(
         EventParts::Basic(
@@ -300,7 +299,7 @@ pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
             tags(&[&["d", "delete_by_addr_test_bound_x"]]), // different d-tag
             "I say wrong thing".to_string(),
         ),
-        true,
+        User::Registered1,
     )?);
     events.push(Globals::make_event(
         EventParts::Basic(
@@ -308,7 +307,7 @@ pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
             tags(&[&["d", "delete_by_addr_test_bound"]]),
             "I say wrong thing".to_string(),
         ),
-        true,
+        User::Registered1,
     )?);
 
     // Submit all events
@@ -340,7 +339,7 @@ pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
                 tags(&[&["a", &a_tag]]),
                 "".to_string(),
             ),
-            true,
+            User::Registered1,
         )?
     };
 
@@ -370,12 +369,18 @@ pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
 
     if events_back.iter().any(|e| e.id == events[0].id) {
         Ok(Outcome::fail(Some("Failed to delete".to_string())))
-    } else if ! events_back.iter().any(|e| e.id == events[1].id) {
-        Ok(Outcome::fail(Some("Also deleted event of a different author!".to_string())))
-    } else if ! events_back.iter().any(|e| e.id == events[2].id) {
-        Ok(Outcome::fail(Some("Also deleted event of a different d-tag!".to_string())))
-    } else if ! events_back.iter().any(|e| e.id == events[3].id) {
-        Ok(Outcome::fail(Some("Also deleted event of a different kind!".to_string())))
+    } else if !events_back.iter().any(|e| e.id == events[1].id) {
+        Ok(Outcome::fail(Some(
+            "Also deleted event of a different author!".to_string(),
+        )))
+    } else if !events_back.iter().any(|e| e.id == events[2].id) {
+        Ok(Outcome::fail(Some(
+            "Also deleted event of a different d-tag!".to_string(),
+        )))
+    } else if !events_back.iter().any(|e| e.id == events[3].id) {
+        Ok(Outcome::fail(Some(
+            "Also deleted event of a different kind!".to_string(),
+        )))
     } else {
         Ok(Outcome::pass(None))
     }

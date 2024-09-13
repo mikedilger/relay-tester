@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::globals::{EventParts, Globals, GLOBALS};
+use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::WAIT;
 use nostr_types::Event;
 use std::collections::HashMap;
@@ -28,8 +28,7 @@ impl EventGroup {
         parts: EventParts,
         can_read_back: bool,
     ) -> Result<(), Error> {
-        // Build the event (true = registered user)
-        let event = Globals::make_event(parts.clone(), true)?;
+        let event = Globals::make_event(parts.clone(), User::Registered1)?;
 
         // Submit to the relay
         let (_ok, _reason) = GLOBALS

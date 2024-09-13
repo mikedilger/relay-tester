@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::globals::GLOBALS;
+use crate::globals::{User, GLOBALS};
 use std::time::Duration;
 use strum_macros::{EnumCount, EnumIter};
 
@@ -24,7 +24,7 @@ impl Stage {
                     .write()
                     .as_mut()
                     .unwrap()
-                    .authenticate_registered_if_challenged()
+                    .authenticate_if_challenged(User::Registered1)
                     .await?;
 
                 // TBD: Inject Event Group A
@@ -59,7 +59,7 @@ impl Stage {
                     .write()
                     .as_mut()
                     .unwrap()
-                    .authenticate_stranger_if_challenged()
+                    .authenticate_if_challenged(User::Stranger)
                     .await?;
             }
             Stage::Unknown => {

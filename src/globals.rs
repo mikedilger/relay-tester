@@ -22,7 +22,8 @@ pub struct Globals {
     pub connection: Arc<RwLock<Option<Connection>>>,
     pub disconnected: AtomicBool,
     pub stranger: Arc<RwLock<KeySigner>>,
-    pub registered_user: Arc<RwLock<KeySigner>>,
+    pub registered1: Arc<RwLock<KeySigner>>,
+    pub registered2: Arc<RwLock<KeySigner>>,
     pub test_results: Arc<RwLock<BTreeMap<TestItem, Outcome>>>,
     pub nip11: Arc<RwLock<Option<serde_json::Value>>>,
     pub saw_ok_after_event: AtomicBool,
@@ -44,7 +45,8 @@ impl Globals {
             connection: Arc::new(RwLock::new(None)),
             disconnected: AtomicBool::new(false),
             stranger: Arc::new(RwLock::new(KeySigner::generate("stranger", 2).unwrap())),
-            registered_user: Arc::new(RwLock::new(KeySigner::generate("fixme", 2).unwrap())),
+            registered1: Arc::new(RwLock::new(KeySigner::generate("fixme", 2).unwrap())),
+            registered2: Arc::new(RwLock::new(KeySigner::generate("fixme", 2).unwrap())),
             test_results: Arc::new(RwLock::new(test_results)),
             nip11: Arc::new(RwLock::new(None)),
             saw_ok_after_event: AtomicBool::new(false),
@@ -54,9 +56,14 @@ impl Globals {
         }
     }
 
-    pub async fn init(relay_url: String, private_key: PrivateKey) -> Result<(), Error> {
+    pub async fn init(
+        relay_url: String,
+        private_key1: PrivateKey,
+        private_key2: PrivateKey,
+    ) -> Result<(), Error> {
         *GLOBALS.relay_url.write() = relay_url;
-        *GLOBALS.registered_user.write() = KeySigner::from_private_key(private_key, "", 8).unwrap();
+        *GLOBALS.registered1.write() = KeySigner::from_private_key(private_key1, "", 8).unwrap();
+        *GLOBALS.registered2.write() = KeySigner::from_private_key(private_key2, "", 8).unwrap();
         log!("{}", "*** CONNECTING ***".color(Color::Red));
         let relay_url = GLOBALS.relay_url.read().clone();
         let connection = Connection::new(relay_url).await?;
@@ -64,27 +71,27 @@ impl Globals {
         Ok(())
     }
 
-    pub fn make_event(parts: EventParts, registered: bool) -> Result<Event, Error> {
+    pub fn make_event(parts: EventParts, user: User) -> Result<Event, Error> {
         let (kind, tags, content, created_at) = match parts {
             EventParts::Basic(k, t, c) => (k, t, c, Unixtime::now()),
             EventParts::Dated(k, t, c, d) => (k, t, c, d),
         };
 
-        let user = if registered {
-            &GLOBALS.registered_user.read()
-        } else {
-            &GLOBALS.stranger.read()
+        let u = match user {
+            User::Stranger => &GLOBALS.stranger.read(),
+            User::Registered1 => &GLOBALS.registered1.read(),
+            User::Registered2 => &GLOBALS.registered2.read(),
         };
 
         let pre_event = PreEvent {
-            pubkey: user.public_key(),
+            pubkey: u.public_key(),
             created_at,
             kind,
             tags,
             content,
         };
 
-        Ok(user.sign_event(pre_event)?)
+        Ok(u.sign_event(pre_event)?)
     }
 
     pub fn make_raw_event(
@@ -92,13 +99,15 @@ impl Globals {
         kind: &str,
         tags: &str,
         content: &str,
-        registered: bool,
+        user: User,
     ) -> (Id, String) {
-        let public_key_hex = if registered {
-            GLOBALS.registered_user.read().public_key().as_hex_string()
-        } else {
-            GLOBALS.stranger.read().public_key().as_hex_string()
+        let u = match user {
+            User::Stranger => &GLOBALS.stranger.read(),
+            User::Registered1 => &GLOBALS.registered1.read(),
+            User::Registered2 => &GLOBALS.registered2.read(),
         };
+
+        let public_key_hex = u.public_key().as_hex_string();
 
         let serial_for_sig = format!(
             "[0,\"{}\",{},{},{},\"{}\"]",
@@ -108,7 +117,7 @@ impl Globals {
         let hash = secp256k1::hashes::sha256::Hash::hash(serial_for_sig.as_bytes());
         let id: [u8; 32] = hash.to_byte_array();
         let id = Id(id);
-        let signature = GLOBALS.registered_user.read().sign_id(id).unwrap();
+        let signature = u.sign_id(id).unwrap();
 
         let raw_event = format!(
             r##"{{"id":"{}","pubkey":"{}","created_at":{},"kind":{},"tags":{},"content":"{}","sig":"{}"}}"##,
@@ -129,4 +138,11 @@ impl Globals {
 pub enum EventParts {
     Basic(EventKind, Vec<Tag>, String),
     Dated(EventKind, Vec<Tag>, String, Unixtime),
+}
+
+#[derive(Debug, Clone)]
+pub enum User {
+    Stranger,
+    Registered1,
+    Registered2,
 }

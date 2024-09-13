@@ -1,5 +1,5 @@
 use crate::error::Error;
-use crate::globals::{Globals, GLOBALS};
+use crate::globals::{Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
 use nostr_types::Unixtime;
@@ -30,8 +30,13 @@ pub async fn utf8non() -> Result<Outcome, Error> {
 }
 
 async fn go(content: &str) -> Result<Outcome, Error> {
-    let (id, raw_event) =
-        Globals::make_raw_event(&format!("{}", Unixtime::now().0), "1", "[]", content, true);
+    let (id, raw_event) = Globals::make_raw_event(
+        &format!("{}", Unixtime::now().0),
+        "1",
+        "[]",
+        content,
+        User::Registered1,
+    );
 
     let (ok, reason) = GLOBALS
         .connection

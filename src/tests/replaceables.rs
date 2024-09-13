@@ -1,10 +1,9 @@
-use super::maybe_submit_event_group_a; // tags
-                                       //use crate::connection::Connection;
+use super::maybe_submit_event_group_a;
 use crate::error::Error;
-use crate::globals::GLOBALS; // EventParts, Globals
+use crate::globals::GLOBALS;
 use crate::outcome::Outcome;
 use crate::WAIT;
-use nostr_types::{Event, EventKind, Filter, Id, Signer}; // PublicKeyHex;
+use nostr_types::{Event, EventKind, Filter, Id, Signer};
 use std::time::Duration;
 
 pub async fn accepts_metadata() -> Result<Outcome, Error> {
@@ -65,7 +64,7 @@ pub async fn replaces_metadata() -> Result<Outcome, Error> {
         .0
         .id;
 
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
 
     let filter = {
         let mut filter = Filter::new();
@@ -156,7 +155,7 @@ pub async fn replaces_contact_list() -> Result<Outcome, Error> {
         .0
         .id;
 
-    let registered_public_key = GLOBALS.registered_user.read().public_key();
+    let registered_public_key = GLOBALS.registered1.read().public_key();
 
     let filter = {
         let mut filter = Filter::new();

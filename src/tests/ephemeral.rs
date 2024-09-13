@@ -1,7 +1,7 @@
 use super::tags;
 use crate::connection::Connection;
 use crate::error::Error;
-use crate::globals::{EventParts, Globals, GLOBALS};
+use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
 use nostr_types::{EventKind, Filter, PublicKeyHex, Signer};
@@ -11,7 +11,7 @@ pub async fn ephemeral_subscriptions_work() -> Result<Outcome, Error> {
     let filter = {
         let mut filter = Filter::new();
         filter.kinds = vec![EventKind::Ephemeral(25000)];
-        let pkh: PublicKeyHex = GLOBALS.registered_user.read().public_key().into();
+        let pkh: PublicKeyHex = GLOBALS.registered1.read().public_key().into();
         filter.add_author(&pkh);
         filter
     };
@@ -46,7 +46,7 @@ pub async fn ephemeral_subscriptions_work() -> Result<Outcome, Error> {
             tags(&[&["test"]]),
             "".to_string(),
         ),
-        true,
+        User::Registered1,
     )?;
     let (ok, reason) = injector
         .post_event(event.clone(), Duration::from_secs(WAIT))
@@ -88,7 +88,7 @@ pub async fn persists_ephemeral_events() -> Result<Outcome, Error> {
             tags(&[&["test"]]),
             "".to_string(),
         ),
-        true,
+        User::Registered1,
     )?;
     let (ok, reason) = GLOBALS
         .connection
@@ -108,7 +108,7 @@ pub async fn persists_ephemeral_events() -> Result<Outcome, Error> {
     let filter = {
         let mut filter = Filter::new();
         filter.kinds = vec![EventKind::Ephemeral(25001)];
-        let pkh: PublicKeyHex = GLOBALS.registered_user.read().public_key().into();
+        let pkh: PublicKeyHex = GLOBALS.registered1.read().public_key().into();
         filter.add_author(&pkh);
         filter
     };

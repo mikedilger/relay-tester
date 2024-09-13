@@ -1,6 +1,6 @@
 use super::tags;
 use crate::error::Error;
-use crate::globals::{EventParts, Globals, GLOBALS};
+use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
 use nostr_types::{EventKind, Id, Signature, Signer};
@@ -17,7 +17,7 @@ pub async fn sends_ok_after_event() -> Result<Outcome, Error> {
 pub async fn verifies_signatures() -> Result<Outcome, Error> {
     let mut event = Globals::make_event(
         EventParts::Basic(EventKind::TextNote, tags(&[&["test"]]), "".to_string()),
-        false,
+        User::Registered1,
     )?;
 
     event.sig = Signature::zeroes();
@@ -42,13 +42,13 @@ pub async fn verifies_signatures() -> Result<Outcome, Error> {
 pub async fn verifies_id_hashes() -> Result<Outcome, Error> {
     let mut event = Globals::make_event(
         EventParts::Basic(EventKind::TextNote, tags(&[&["test"]]), "".to_string()),
-        false,
+        User::Registered1,
     )?;
 
     event.id =
         Id::try_from_hex_string("cafebabecafebabecafebabecafebabecafebabecafebabecafebabecafebabe")
             .unwrap();
-    event.sig = GLOBALS.registered_user.read().sign_id(event.id).unwrap();
+    event.sig = GLOBALS.registered1.read().sign_id(event.id).unwrap();
 
     let (ok, reason) = GLOBALS
         .connection
