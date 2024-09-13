@@ -387,11 +387,114 @@ pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
 }
 
 pub async fn delete_by_id_of_others() -> Result<Outcome, Error> {
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+    // Make an event
+    let event = Globals::make_event(
+        EventParts::Basic(
+            EventKind::TextNote,
+            tags(&[&["test"]]),
+            "I say wrong thing".to_string(),
+        ),
+        User::Registered2,
+    )?;
+    let event_id = event.id;
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event, Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::err(reason));
+    }
+
+    // Make a deletion event, but different user e-tag
+    let delete_event = Globals::make_event(
+        EventParts::Basic(
+            EventKind::EventDeletion,
+            tags(&[&["e", &event_id.as_hex_string()]]),
+            "".to_string(),
+        ),
+        User::Registered1,
+    )?;
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(delete_event, Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::pass(Some(reason)));
+    } else {
+        return Ok(Outcome::fail(Some("Accepted deletion of someone else's event".to_owned())));
+    }
 }
 
 pub async fn delete_by_addr_of_others() -> Result<Outcome, Error> {
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+    // Make an event
+    let event = Globals::make_event(
+        EventParts::Basic(
+            EventKind::LongFormContent,
+            tags(&[&["d", "delete_by_addr_of_others"]]),
+            "I say wrong thing".to_string(),
+        ),
+        User::Registered2,
+    )?;
+
+    // Compute event group address
+    let naddr = NAddr {
+        d: "delete_by_addr_of_others".to_owned(),
+        relays: vec![],
+        kind: EventKind::LongFormContent,
+        author: event.pubkey,
+    };
+    let a_tag = format!(
+        "{}:{}:{}",
+        Into::<u32>::into(naddr.kind),
+        naddr.author.as_hex_string(),
+        naddr.d
+    );
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event, Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::err(reason));
+    }
+
+    // Make a deletion event, a-tag
+    let delete_event = Globals::make_event(
+        EventParts::Basic(
+            EventKind::EventDeletion,
+            tags(&[&["a", &a_tag]]),
+            "".to_string(),
+        ),
+        User::Registered1, // but wrong user!
+    )?;
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(delete_event, Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::pass(Some(reason)));
+    } else {
+        return Ok(Outcome::fail(Some("Accepted deletion of someone else's event".to_owned())));
+    }
 }
 
 pub async fn resubmission_of_delete_by_id() -> Result<Outcome, Error> {
