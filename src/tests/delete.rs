@@ -3,7 +3,7 @@ use crate::error::Error;
 use crate::globals::{EventParts, Globals, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
-use nostr_types::{EventKind, Filter, NAddr};
+use nostr_types::{Event, EventKind, Filter, NAddr};
 use std::time::Duration;
 
 pub async fn delete_by_id() -> Result<Outcome, Error> {
@@ -274,7 +274,111 @@ pub async fn delete_by_addr_only_older() -> Result<Outcome, Error> {
 }
 
 pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+    let mut events: Vec<Event> = vec![];
+
+
+    // Make 4 events, the final 3 differing by the first by just one factor
+    events.push(Globals::make_event(
+        EventParts::Basic(
+            EventKind::LongFormContent,
+            tags(&[&["d", "delete_by_addr_test_bound"]]),
+            "I say wrong thing".to_string(),
+        ),
+        true,
+    )?);
+    events.push(Globals::make_event(
+        EventParts::Basic(
+            EventKind::LongFormContent,
+            tags(&[&["d", "delete_by_addr_test_bound"]]),
+            "I say wrong thing".to_string(),
+        ),
+        false, // different author
+    )?);
+    events.push(Globals::make_event(
+        EventParts::Basic(
+            EventKind::LongFormContent,
+            tags(&[&["d", "delete_by_addr_test_bound_x"]]), // different d-tag
+            "I say wrong thing".to_string(),
+        ),
+        true,
+    )?);
+    events.push(Globals::make_event(
+        EventParts::Basic(
+            EventKind::DraftLongFormContent, // different kind
+            tags(&[&["d", "delete_by_addr_test_bound"]]),
+            "I say wrong thing".to_string(),
+        ),
+        true,
+    )?);
+
+    // Submit all events
+    {
+        let mut lock = GLOBALS.connection.write();
+        for event in &events {
+            let (ok, reason) = lock
+                .as_mut()
+                .unwrap()
+                .post_event(event.clone(), Duration::from_secs(WAIT))
+                .await?;
+            if !ok {
+                return Ok(Outcome::err(reason));
+            }
+        }
+    }
+
+    // Make a deletion event, a-tag
+    let delete_event = {
+        let a_tag = format!(
+            "{}:{}:{}",
+            Into::<u32>::into(EventKind::LongFormContent),
+            events[0].pubkey.as_hex_string(),
+            "delete_by_addr_test_bound"
+        );
+        Globals::make_event(
+            EventParts::Basic(
+                EventKind::EventDeletion,
+                tags(&[&["a", &a_tag]]),
+                "".to_string(),
+            ),
+            true,
+        )?
+    };
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(delete_event, Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::err(reason));
+    }
+
+    // Fetch all original events by id
+    let mut filter = Filter::new();
+    filter.ids = events.iter().map(|e| e.id.into()).collect();
+    let events_back = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .await?
+        .into_events();
+
+    if events_back.iter().any(|e| e.id == events[0].id) {
+        Ok(Outcome::fail(Some("Failed to delete".to_string())))
+    } else if ! events_back.iter().any(|e| e.id == events[1].id) {
+        Ok(Outcome::fail(Some("Also deleted event of a different author!".to_string())))
+    } else if ! events_back.iter().any(|e| e.id == events[2].id) {
+        Ok(Outcome::fail(Some("Also deleted event of a different d-tag!".to_string())))
+    } else if ! events_back.iter().any(|e| e.id == events[3].id) {
+        Ok(Outcome::fail(Some("Also deleted event of a different kind!".to_string())))
+    } else {
+        Ok(Outcome::pass(None))
+    }
 }
 
 pub async fn delete_by_id_of_others() -> Result<Outcome, Error> {
