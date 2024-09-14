@@ -3,7 +3,7 @@ use crate::error::Error;
 use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
-use nostr_types::{Event, EventKind, Filter, NAddr};
+use nostr_types::{Event, EventKind, Filter, NAddr, Signer};
 use std::time::Duration;
 
 pub async fn delete_by_id() -> Result<Outcome, Error> {
@@ -431,7 +431,9 @@ pub async fn delete_by_id_of_others() -> Result<Outcome, Error> {
     if !ok {
         return Ok(Outcome::pass(Some(reason)));
     } else {
-        return Ok(Outcome::fail(Some("Accepted deletion of someone else's event".to_owned())));
+        return Ok(Outcome::fail(Some(
+            "Accepted deletion of someone else's event".to_owned(),
+        )));
     }
 }
 
@@ -493,18 +495,217 @@ pub async fn delete_by_addr_of_others() -> Result<Outcome, Error> {
     if !ok {
         return Ok(Outcome::pass(Some(reason)));
     } else {
-        return Ok(Outcome::fail(Some("Accepted deletion of someone else's event".to_owned())));
+        return Ok(Outcome::fail(Some(
+            "Accepted deletion of someone else's event".to_owned(),
+        )));
     }
 }
 
 pub async fn resubmission_of_delete_by_id() -> Result<Outcome, Error> {
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+    // Make an event
+    let event = Globals::make_event(
+        EventParts::Basic(
+            EventKind::TextNote,
+            tags(&[&["test"]]),
+            "I say wrong thing".to_string(),
+        ),
+        User::Registered1,
+    )?;
+    let event_id = event.id;
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event.clone(), Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::err(reason));
+    }
+
+    // Make a deletion event, e-tag
+    let delete_event = Globals::make_event(
+        EventParts::Basic(
+            EventKind::EventDeletion,
+            tags(&[&["e", &event_id.as_hex_string()]]),
+            "".to_string(),
+        ),
+        User::Registered1,
+    )?;
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(delete_event, Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::err(reason));
+    }
+
+    // Resubmit the original event
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event, Duration::from_secs(WAIT))
+        .await?;
+    if ok {
+        Ok(Outcome::fail(Some("Accepted a deleted event".to_owned())))
+    } else {
+        Ok(Outcome::pass(Some(reason)))
+    }
 }
 
 pub async fn resubmission_of_older_delete_by_addr() -> Result<Outcome, Error> {
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+    let time1 = minutes_ago(5);
+    let time2 = minutes_ago(2);
+
+    // Make an event
+    let event = Globals::make_event(
+        EventParts::Dated(
+            EventKind::LongFormContent,
+            tags(&[&["d", "resubmission_of_older_delete_by_addr"]]),
+            "I say wrong thing".to_string(),
+            time1,
+        ),
+        User::Registered1,
+    )?;
+
+    // Compute event group address
+    let naddr = NAddr {
+        d: "resubmission_of_older_delete_by_addr".to_owned(),
+        relays: vec![],
+        kind: EventKind::LongFormContent,
+        author: event.pubkey,
+    };
+    let a_tag = format!(
+        "{}:{}:{}",
+        Into::<u32>::into(naddr.kind),
+        naddr.author.as_hex_string(),
+        naddr.d
+    );
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event.clone(), Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::err(reason));
+    }
+
+    // Make a deletion event, a-tag
+    let delete_event = Globals::make_event(
+        EventParts::Dated(
+            EventKind::EventDeletion,
+            tags(&[&["a", &a_tag]]),
+            "".to_string(),
+            time2,
+        ),
+        User::Registered1,
+    )?;
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(delete_event, Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::err(reason));
+    }
+
+    // Resubmit the original event
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event, Duration::from_secs(WAIT))
+        .await?;
+    if ok {
+        Ok(Outcome::fail(Some("Accepted a deleted event".to_owned())))
+    } else {
+        Ok(Outcome::pass(Some(reason)))
+    }
 }
 
-pub async fn resubmission_of_newer_delete_by_addr() -> Result<Outcome, Error> {
-    Ok(Outcome::err("NOT YET IMPLEMENTED".to_string()))
+pub async fn submission_of_newer_delete_by_addr() -> Result<Outcome, Error> {
+    let time1 = minutes_ago(5);
+    let time2 = minutes_ago(2);
+
+    let public_key = GLOBALS.registered1.read().public_key().into();
+
+    // Compute event group address
+    let naddr = NAddr {
+        d: "submission_of_newer_delete_by_addr".to_owned(),
+        relays: vec![],
+        kind: EventKind::LongFormContent,
+        author: public_key,
+    };
+    let a_tag = format!(
+        "{}:{}:{}",
+        Into::<u32>::into(naddr.kind),
+        naddr.author.as_hex_string(),
+        naddr.d
+    );
+
+    // Make a deletion event, a-tag
+    let delete_event = Globals::make_event(
+        EventParts::Dated(
+            EventKind::EventDeletion,
+            tags(&[&["a", &a_tag]]),
+            "".to_string(),
+            time1,
+        ),
+        User::Registered1,
+    )?;
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(delete_event, Duration::from_secs(WAIT))
+        .await?;
+    if !ok {
+        return Ok(Outcome::err(reason));
+    }
+
+    // Make an event
+    let event = Globals::make_event(
+        EventParts::Dated(
+            EventKind::LongFormContent,
+            tags(&[&["d", "submission_of_newer_delete_by_addr"]]),
+            "Using same address after deletion".to_string(),
+            time2,
+        ),
+        User::Registered1,
+    )?;
+
+    // Submit it
+    let (ok, reason) = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .post_event(event, Duration::from_secs(WAIT))
+        .await?;
+    if ok {
+        Ok(Outcome::pass(None))
+    } else {
+        Ok(Outcome::fail(Some(reason)))
+    }
 }

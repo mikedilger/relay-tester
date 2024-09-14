@@ -106,7 +106,7 @@ pub enum TestItem {
     DeleteByAddrOfOthers,
     ResubmissionOfDeletedById,
     ResubmissionOfOlderDeletedByAddr,
-    ResubmissionOfNewerDeletedByAddr,
+    SubmissionOfNewerDeletedByAddr,
     DeletePropogatesToReferrers,
 
     // TBD
@@ -254,10 +254,10 @@ impl TestItem {
             DeleteByAddrOfOthers => "Cannot delete by a-tag of other people's events",
             ResubmissionOfDeletedById => "Resubmission of deleted-by-id event is rejected",
             ResubmissionOfOlderDeletedByAddr => {
-                "Resubmission of older deleted-by-addr event is rejected"
+                "Rejects submission of event before address is deleted"
             }
-            ResubmissionOfNewerDeletedByAddr => {
-                "Resubmission of newer deleted-by-addr event is accepted"
+            SubmissionOfNewerDeletedByAddr => {
+                "Accepts submission of event after address is deleted"
             }
             DeletePropogatesToReferrers => "Deleting an event deletes its reactions",
 
@@ -396,7 +396,7 @@ impl TestItem {
             DeleteByAddrOfOthers => true,
             ResubmissionOfDeletedById => true,
             ResubmissionOfOlderDeletedByAddr => true,
-            ResubmissionOfNewerDeletedByAddr => true,
+            SubmissionOfNewerDeletedByAddr => true,
             DeletePropogatesToReferrers => false,
 
             // TBD
@@ -534,7 +534,7 @@ impl TestItem {
             DeleteByAddrOfOthers => Stage::Registered,
             ResubmissionOfDeletedById => Stage::Registered,
             ResubmissionOfOlderDeletedByAddr => Stage::Registered,
-            ResubmissionOfNewerDeletedByAddr => Stage::Registered,
+            SubmissionOfNewerDeletedByAddr => Stage::Registered,
             DeletePropogatesToReferrers => Stage::Registered,
 
             // TBD
@@ -702,9 +702,7 @@ impl TestItem {
             ResubmissionOfOlderDeletedByAddr => {
                 delete::resubmission_of_older_delete_by_addr().await
             }
-            ResubmissionOfNewerDeletedByAddr => {
-                delete::resubmission_of_newer_delete_by_addr().await
-            }
+            SubmissionOfNewerDeletedByAddr => delete::submission_of_newer_delete_by_addr().await,
             DeletePropogatesToReferrers => tbd(),
 
             // TBD
