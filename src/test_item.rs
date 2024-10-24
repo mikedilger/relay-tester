@@ -110,7 +110,6 @@ pub enum TestItem {
     DeletePropogatesToReferrers,
 
     // TBD
-    LimitWorksAcrossMultipleFilterGroups,
     ServesPostEoseEvents,
     NoTimeoutWhileSubscribed,
     Nip4DmsRequireAuth,
@@ -262,7 +261,6 @@ impl TestItem {
             DeletePropogatesToReferrers => "Deleting an event deletes its reactions",
 
             // TBD
-            LimitWorksAcrossMultipleFilterGroups => "Limit works across multiple filter groups",
             ServesPostEoseEvents => "Serves post-EOSE events",
             NoTimeoutWhileSubscribed => "No timeout while subscribed",
             Nip4DmsRequireAuth => "Nip-04 DMs require AUTH",
@@ -400,7 +398,6 @@ impl TestItem {
             DeletePropogatesToReferrers => false,
 
             // TBD
-            LimitWorksAcrossMultipleFilterGroups => true,
             ServesPostEoseEvents => true,
             NoTimeoutWhileSubscribed => true,
             Nip4DmsRequireAuth => false,
@@ -538,7 +535,6 @@ impl TestItem {
             DeletePropogatesToReferrers => Stage::Registered,
 
             // TBD
-            LimitWorksAcrossMultipleFilterGroups => Stage::Registered,
             ServesPostEoseEvents => Stage::Registered,
             NoTimeoutWhileSubscribed => Stage::Registered,
             CanAuthAsKnown => Stage::Registered,
@@ -705,13 +701,14 @@ impl TestItem {
             SubmissionOfNewerDeletedByAddr => delete::submission_of_newer_delete_by_addr().await,
             DeletePropogatesToReferrers => tbd(),
 
+            // Stranger:
+            CanAuthAsUnknown => auth::can_auth_as_unknown().await,
+
             // TBD
-            LimitWorksAcrossMultipleFilterGroups => tbd(),
             ServesPostEoseEvents => tbd(),
             NoTimeoutWhileSubscribed => tbd(),
             Nip4DmsRequireAuth => tbd(),
             GiftwrapsRequireAuth => tbd(),
-            CanAuthAsUnknown => tbd(),
             UnknownCanWriteOwn => tbd(),
             UnknownCanReadbackOwn => tbd(),
             UnknownCanWriteOther => tbd(),
