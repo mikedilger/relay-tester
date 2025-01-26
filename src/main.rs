@@ -26,6 +26,8 @@ use colorful::{Color, Colorful};
 use nostr_types::PrivateKey;
 use std::env;
 use std::sync::atomic::Ordering;
+use std::thread;
+use std::time::Duration;
 use strum::IntoEnumIterator;
 
 const WAIT: u64 = 2;
@@ -80,8 +82,6 @@ async fn main() -> Result<(), Error> {
     // deadlock detection thread
     {
         use parking_lot::deadlock;
-        use std::thread;
-        use std::time::Duration;
 
         thread::spawn(move || loop {
             thread::sleep(Duration::from_secs(10));
@@ -121,6 +121,8 @@ async fn main() -> Result<(), Error> {
 
                 GLOBALS.test_results.write().insert(test_item, outcome);
             }
+
+            thread::sleep(Duration::new(0, 100));
         }
     }
 
