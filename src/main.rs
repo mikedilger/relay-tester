@@ -109,17 +109,41 @@ async fn main() -> Result<(), Error> {
             format!("{:?}", stage).color(Color::Green3a)
         );
         stage.init().await?;
+
+        let mut old_next_sub_id = GLOBALS
+            .connection
+            .read()
+            .as_ref()
+            .unwrap()
+            .next_sub_id
+            .load(Ordering::Relaxed);
+
         for test_item in TestItem::iter() {
             if test_item.stage() == stage {
                 log!("  * TEST: {}", test_item.name());
 
-                let outcome = if stage == Stage::Unknown {
+                let mut outcome = if stage == Stage::Unknown {
                     Outcome::err("Test has not been assigned to a stage yet.".to_owned())
                 } else {
                     test_item.run().await
                 };
 
+                let new_next_sub_id = GLOBALS
+                    .connection
+                    .read()
+                    .as_ref()
+                    .unwrap()
+                    .next_sub_id
+                    .load(Ordering::Relaxed);
+
+                // old=5, new=7:   answer=(5,6)
+                for i in old_next_sub_id..new_next_sub_id {
+                    outcome.subs.push(i);
+                };
+
                 GLOBALS.test_results.write().insert(test_item, outcome);
+
+                old_next_sub_id = new_next_sub_id;
             }
 
             thread::sleep(Duration::new(0, 100));

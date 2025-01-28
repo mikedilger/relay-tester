@@ -8,19 +8,13 @@ pub async fn nip11_provided() -> Result<Outcome, Error> {
 
     *GLOBALS.nip11.write() = Some(nip11);
 
-    Ok(Outcome {
-        pass: Some(true),
-        info: None,
-    })
+    Ok(Outcome::pass(None))
 }
 
 pub async fn claimed_support_for_nip(number: u64) -> Result<Outcome, Error> {
     let nip11 = GLOBALS.nip11.read().clone();
     if nip11.is_none() {
-        return Ok(Outcome {
-            pass: Some(false),
-            info: Some("NIP-11 document was not found".to_owned()),
-        });
+        return Ok(Outcome::fail(Some("NIP-11 document was not found".to_owned())));
     }
     let nip11 = nip11.unwrap();
 
@@ -30,10 +24,7 @@ pub async fn claimed_support_for_nip(number: u64) -> Result<Outcome, Error> {
                 if let Value::Number(vnum) = valelem {
                     if let Some(u) = vnum.as_u64() {
                         if u == number {
-                            return Ok(Outcome {
-                                pass: Some(true),
-                                info: None,
-                            });
+                            return Ok(Outcome::pass(None));
                         }
                     }
                 }
@@ -41,8 +32,5 @@ pub async fn claimed_support_for_nip(number: u64) -> Result<Outcome, Error> {
         }
     }
 
-    Ok(Outcome {
-        pass: Some(false),
-        info: None,
-    })
+    Ok(Outcome::fail(None))
 }

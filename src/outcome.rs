@@ -4,6 +4,7 @@ use colorful::{Color, Colorful};
 pub struct Outcome {
     pub pass: Option<bool>,
     pub info: Option<String>,
+    pub subs: Vec<usize>,
 }
 
 impl Outcome {
@@ -11,6 +12,7 @@ impl Outcome {
         Outcome {
             pass: Some(true),
             info,
+            subs: Vec::new(),
         }
     }
 
@@ -18,6 +20,7 @@ impl Outcome {
         Outcome {
             pass: Some(false),
             info,
+            subs: Vec::new(),
         }
     }
 
@@ -25,6 +28,25 @@ impl Outcome {
         Outcome {
             pass: None,
             info: Some(info),
+            subs: Vec::new(),
+        }
+    }
+
+    fn subs_str(&self) -> String {
+        if self.subs.is_empty() {
+            String::new()
+        } else {
+            let mut s: String = "[".to_owned();
+            let mut first: bool = true;
+            for i in &self.subs {
+                if !first {
+                    s.push(' ');
+                };
+                first = false;
+                s.push_str(&format!("sub{}", i));
+            }
+            s.push_str("]: ");
+            s
         }
     }
 }
@@ -38,12 +60,12 @@ impl Outcome {
                     Some(ref s) => format!("{} ({})", "UNTESTED".color(Color::Grey50), s),
                 },
                 Some(false) => match self.info {
-                    None => format!("{}", "NO".color(Color::DarkGoldenrod)),
-                    Some(ref s) => format!("{} ({})", "NO".color(Color::DarkGoldenrod), s),
+                    None => format!("{}{}", self.subs_str(), "NO".color(Color::DarkGoldenrod)),
+                    Some(ref s) => format!("{}{} ({})", self.subs_str(), "NO".color(Color::DarkGoldenrod), s),
                 },
                 Some(true) => match self.info {
-                    None => format!("{}", "YES".color(Color::Green)),
-                    Some(ref s) => format!("{} ({})", "YES".color(Color::Green), s),
+                    None => format!("{}{} ", self.subs_str(), "YES".color(Color::Green)),
+                    Some(ref s) => format!("{}{} ({})", self.subs_str(), "YES".color(Color::Green), s),
                 },
             },
             true => match self.pass {
@@ -52,12 +74,12 @@ impl Outcome {
                     Some(ref s) => format!("{} ({})", "UNTESTED".color(Color::Grey50), s),
                 },
                 Some(false) => match self.info {
-                    None => format!("{}", "FAIL".color(Color::Red3a)),
-                    Some(ref s) => format!("{} ({})", "FAIL".color(Color::Red3a), s),
+                    None => format!("{}{}", self.subs_str(), "FAIL".color(Color::Red3a)),
+                    Some(ref s) => format!("{}{} ({})", self.subs_str(), "FAIL".color(Color::Red3a), s),
                 },
                 Some(true) => match self.info {
-                    None => format!("{}", "PASS".color(Color::Green)),
-                    Some(ref s) => format!("{} ({})", "PASS".color(Color::Green), s),
+                    None => format!("{}{} ", self.subs_str(), "PASS".color(Color::Green)),
+                    Some(ref s) => format!("{}{} ({})", self.subs_str(), "PASS".color(Color::Green), s),
                 },
             },
         }

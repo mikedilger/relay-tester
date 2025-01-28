@@ -66,7 +66,7 @@ impl Globals {
         *GLOBALS.registered2.write() = KeySigner::from_private_key(private_key2, "", 8).unwrap();
         log!("{}", "*** CONNECTING ***".color(Color::Red));
         let relay_url = GLOBALS.relay_url.read().clone();
-        let connection = Connection::new(relay_url).await?;
+        let connection = Connection::new(relay_url, 0).await?;
         *GLOBALS.connection.write() = Some(connection);
         Ok(())
     }

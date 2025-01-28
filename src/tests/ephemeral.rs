@@ -37,7 +37,7 @@ pub async fn ephemeral_subscriptions_work() -> Result<Outcome, Error> {
 
     // Create a second parallel connection to the relay for injecting events
     let relay_url = GLOBALS.relay_url.read().to_owned();
-    let mut injector = Connection::new(relay_url).await?;
+    let mut injector = Connection::new(relay_url, 1000).await?;
 
     // Inject an ephemeral event
     let event = Globals::make_event(

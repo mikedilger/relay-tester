@@ -60,7 +60,7 @@ pub struct Connection {
 }
 
 impl Connection {
-    pub async fn new(relay_url: String) -> Result<Connection, Error> {
+    pub async fn new(relay_url: String, next_sub_id: usize) -> Result<Connection, Error> {
         let (host, uri) = url_to_host_and_uri(&relay_url);
         let key: [u8; 16] = rand::random();
         let request = http::request::Request::builder()
@@ -87,7 +87,7 @@ impl Connection {
             websocket,
             auth_state: AuthState::NotYetRequested,
             dup_auth: false,
-            next_sub_id: AtomicUsize::new(0),
+            next_sub_id: AtomicUsize::new(next_sub_id),
         })
     }
 
