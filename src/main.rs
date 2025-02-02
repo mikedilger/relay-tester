@@ -34,7 +34,6 @@ const WAIT: u64 = 2;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-
     // Install crypto provider
     rustls::crypto::ring::default_provider()
         .install_default()
@@ -145,7 +144,7 @@ async fn main() -> Result<(), Error> {
                 // old=5, new=7:   answer=(5,6)
                 for i in old_next_sub_id..new_next_sub_id {
                     outcome.subs.push(i);
-                };
+                }
 
                 GLOBALS.test_results.write().insert(test_item, outcome);
 

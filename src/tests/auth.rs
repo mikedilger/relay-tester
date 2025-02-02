@@ -1,7 +1,7 @@
 use super::tags;
 use crate::connection::AuthState;
 use crate::error::Error;
-use crate::globals::{EventParts, GLOBALS, Globals, User};
+use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
 use nostr_types::EventKind;
@@ -58,7 +58,13 @@ pub async fn can_auth_as_unknown() -> Result<Outcome, Error> {
     }
 
     // Reply to the AUTH challenge with the Stranger
-    GLOBALS.connection.write().as_mut().unwrap().authenticate_if_challenged(User::Stranger).await?;
+    GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .authenticate_if_challenged(User::Stranger)
+        .await?;
 
     match &GLOBALS.connection.read().as_ref().unwrap().auth_state {
         AuthState::Success => Ok(Outcome::pass(None)),

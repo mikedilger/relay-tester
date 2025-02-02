@@ -61,11 +61,18 @@ impl Outcome {
                 },
                 Some(false) => match self.info {
                     None => format!("{}{}", self.subs_str(), "NO".color(Color::DarkGoldenrod)),
-                    Some(ref s) => format!("{}{} ({})", self.subs_str(), "NO".color(Color::DarkGoldenrod), s),
+                    Some(ref s) => format!(
+                        "{}{} ({})",
+                        self.subs_str(),
+                        "NO".color(Color::DarkGoldenrod),
+                        s
+                    ),
                 },
                 Some(true) => match self.info {
                     None => format!("{}{} ", self.subs_str(), "YES".color(Color::Green)),
-                    Some(ref s) => format!("{}{} ({})", self.subs_str(), "YES".color(Color::Green), s),
+                    Some(ref s) => {
+                        format!("{}{} ({})", self.subs_str(), "YES".color(Color::Green), s)
+                    }
                 },
             },
             true => match self.pass {
@@ -75,11 +82,15 @@ impl Outcome {
                 },
                 Some(false) => match self.info {
                     None => format!("{}{}", self.subs_str(), "FAIL".color(Color::Red3a)),
-                    Some(ref s) => format!("{}{} ({})", self.subs_str(), "FAIL".color(Color::Red3a), s),
+                    Some(ref s) => {
+                        format!("{}{} ({})", self.subs_str(), "FAIL".color(Color::Red3a), s)
+                    }
                 },
                 Some(true) => match self.info {
                     None => format!("{}{} ", self.subs_str(), "PASS".color(Color::Green)),
-                    Some(ref s) => format!("{}{} ({})", self.subs_str(), "PASS".color(Color::Green), s),
+                    Some(ref s) => {
+                        format!("{}{} ({})", self.subs_str(), "PASS".color(Color::Green), s)
+                    }
                 },
             },
         }

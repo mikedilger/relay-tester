@@ -14,7 +14,9 @@ pub async fn nip11_provided() -> Result<Outcome, Error> {
 pub async fn claimed_support_for_nip(number: u64) -> Result<Outcome, Error> {
     let nip11 = GLOBALS.nip11.read().clone();
     if nip11.is_none() {
-        return Ok(Outcome::fail(Some("NIP-11 document was not found".to_owned())));
+        return Ok(Outcome::fail(Some(
+            "NIP-11 document was not found".to_owned(),
+        )));
     }
     let nip11 = nip11.unwrap();
 
