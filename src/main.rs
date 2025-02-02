@@ -34,6 +34,12 @@ const WAIT: u64 = 2;
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
+
+    // Install crypto provider
+    rustls::crypto::ring::default_provider()
+        .install_default()
+        .expect("Failed to install rustls crypto provider");
+
     let mut args = env::args();
     let _ = args.next(); // program name
 
