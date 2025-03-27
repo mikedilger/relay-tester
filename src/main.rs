@@ -45,24 +45,20 @@ async fn main() -> Result<(), Error> {
     let mut relay_url_opt: Option<String> = None;
     let mut private_key1_opt: Option<String> = None;
     let mut private_key2_opt: Option<String> = None;
-    loop {
-        if let Some(a) = args.next() {
-            if a.starts_with("--") {
-                match &*a {
-                    "--script" => GLOBALS.script_mode.store(true, Ordering::Relaxed),
-                    _ => return usage(),
-                }
-            } else if relay_url_opt.is_none() {
-                relay_url_opt = Some(a);
-            } else if private_key1_opt.is_none() {
-                private_key1_opt = Some(a);
-            } else if private_key2_opt.is_none() {
-                private_key2_opt = Some(a);
-            } else {
-                return usage();
+    for a in args {
+        if a.starts_with("--") {
+            match &*a {
+                "--script" => GLOBALS.script_mode.store(true, Ordering::Relaxed),
+                _ => return usage(),
             }
+        } else if relay_url_opt.is_none() {
+            relay_url_opt = Some(a);
+        } else if private_key1_opt.is_none() {
+            private_key1_opt = Some(a);
+        } else if private_key2_opt.is_none() {
+            private_key2_opt = Some(a);
         } else {
-            break;
+            return usage();
         }
     }
 

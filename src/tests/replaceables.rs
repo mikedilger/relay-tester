@@ -280,13 +280,13 @@ pub async fn replaceable_event_rejected_if_future() -> Result<Outcome, Error> {
         .await?;
 
     if ok {
-        return Ok(Outcome::fail(Some(
+        Ok(Outcome::fail(Some(
             "Accepted an old superceded replaceable event".to_owned(),
-        )));
+        )))
     } else {
-        return Ok(Outcome::pass(Some(
+        Ok(Outcome::pass(Some(
             "Refused submission of older replaceable event".to_owned(),
-        )));
+        )))
     }
 }
 
@@ -346,13 +346,13 @@ pub async fn addressable_event_rejected_if_future() -> Result<Outcome, Error> {
         .await?;
 
     if ok {
-        return Ok(Outcome::fail(Some(
+        Ok(Outcome::fail(Some(
             "Accepted an old superceded addressable event".to_owned(),
-        )));
+        )))
     } else {
-        return Ok(Outcome::pass(Some(
+        Ok(Outcome::pass(Some(
             "Refused submission of older addressable event".to_owned(),
-        )));
+        )))
     }
 }
 

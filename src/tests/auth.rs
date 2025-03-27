@@ -63,9 +63,9 @@ pub async fn kind_verified() -> Result<Outcome, Error> {
             .await?;
 
         match con.as_mut().unwrap().auth_state {
-            AuthState::Failure(_) => return Ok(Outcome::pass(None)),
-            AuthState::Success => return Ok(Outcome::fail(None)),
-            _ => return Ok(Outcome::err("Could not get AUTH to work".to_owned())),
+            AuthState::Failure(_) => Ok(Outcome::pass(None)),
+            AuthState::Success => Ok(Outcome::fail(None)),
+            _ => Ok(Outcome::err("Could not get AUTH to work".to_owned())),
         }
     } else {
         // We cannot test this if we are not AUTH challenged
@@ -105,9 +105,9 @@ pub async fn relay_verified() -> Result<Outcome, Error> {
             .await?;
 
         match con.as_mut().unwrap().auth_state {
-            AuthState::Failure(_) => return Ok(Outcome::pass(None)),
-            AuthState::Success => return Ok(Outcome::fail(None)),
-            _ => return Ok(Outcome::err("Could not get AUTH to work".to_owned())),
+            AuthState::Failure(_) => Ok(Outcome::pass(None)),
+            AuthState::Success => Ok(Outcome::fail(None)),
+            _ => Ok(Outcome::err("Could not get AUTH to work".to_owned())),
         }
     } else {
         // We cannot test this if we are not AUTH challenged
@@ -128,7 +128,7 @@ pub async fn challenge_verified() -> Result<Outcome, Error> {
         .await?;
 
     // Trigger AUTH challenge
-    if let Some(_) = con.as_mut().unwrap().trigger_auth_get_challenge().await? {
+    if (con.as_mut().unwrap().trigger_auth_get_challenge().await?).is_some() {
         let event = Globals::make_event(
             EventParts::Basic(
                 EventKind::Auth,
@@ -147,9 +147,9 @@ pub async fn challenge_verified() -> Result<Outcome, Error> {
             .await?;
 
         match con.as_mut().unwrap().auth_state {
-            AuthState::Failure(_) => return Ok(Outcome::pass(None)),
-            AuthState::Success => return Ok(Outcome::fail(None)),
-            _ => return Ok(Outcome::err("Could not get AUTH to work".to_owned())),
+            AuthState::Failure(_) => Ok(Outcome::pass(None)),
+            AuthState::Success => Ok(Outcome::fail(None)),
+            _ => Ok(Outcome::err("Could not get AUTH to work".to_owned())),
         }
     } else {
         // We cannot test this if we are not AUTH challenged
@@ -191,9 +191,9 @@ pub async fn time_verified() -> Result<Outcome, Error> {
             .await?;
 
         match con.as_mut().unwrap().auth_state {
-            AuthState::Failure(_) => return Ok(Outcome::pass(None)),
-            AuthState::Success => return Ok(Outcome::fail(None)),
-            _ => return Ok(Outcome::err("Could not get AUTH to work".to_owned())),
+            AuthState::Failure(_) => Ok(Outcome::pass(None)),
+            AuthState::Success => Ok(Outcome::fail(None)),
+            _ => Ok(Outcome::err("Could not get AUTH to work".to_owned())),
         }
     } else {
         // We cannot test this if we are not AUTH challenged

@@ -274,41 +274,41 @@ pub async fn delete_by_addr_only_older() -> Result<Outcome, Error> {
 }
 
 pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
-    let mut events: Vec<Event> = vec![];
-
     // Make 4 events, the final 3 differing by the first by just one factor
-    events.push(Globals::make_event(
-        EventParts::Basic(
-            EventKind::LongFormContent,
-            tags(&[&["d", "delete_by_addr_test_bound"]]),
-            "I say wrong thing".to_string(),
-        ),
-        User::Registered1,
-    )?);
-    events.push(Globals::make_event(
-        EventParts::Basic(
-            EventKind::LongFormContent,
-            tags(&[&["d", "delete_by_addr_test_bound"]]),
-            "I say wrong thing".to_string(),
-        ),
-        User::Registered2, // different author
-    )?);
-    events.push(Globals::make_event(
-        EventParts::Basic(
-            EventKind::LongFormContent,
-            tags(&[&["d", "delete_by_addr_test_bound_x"]]), // different d-tag
-            "I say wrong thing".to_string(),
-        ),
-        User::Registered1,
-    )?);
-    events.push(Globals::make_event(
-        EventParts::Basic(
-            EventKind::DraftLongFormContent, // different kind
-            tags(&[&["d", "delete_by_addr_test_bound"]]),
-            "I say wrong thing".to_string(),
-        ),
-        User::Registered1,
-    )?);
+    let events: Vec<Event> = vec![
+        Globals::make_event(
+            EventParts::Basic(
+                EventKind::LongFormContent,
+                tags(&[&["d", "delete_by_addr_test_bound"]]),
+                "I say wrong thing".to_string(),
+            ),
+            User::Registered1,
+        )?,
+        Globals::make_event(
+            EventParts::Basic(
+                EventKind::LongFormContent,
+                tags(&[&["d", "delete_by_addr_test_bound"]]),
+                "I say wrong thing".to_string(),
+            ),
+            User::Registered2, // different author
+        )?,
+        Globals::make_event(
+            EventParts::Basic(
+                EventKind::LongFormContent,
+                tags(&[&["d", "delete_by_addr_test_bound_x"]]), // different d-tag
+                "I say wrong thing".to_string(),
+            ),
+            User::Registered1,
+        )?,
+        Globals::make_event(
+            EventParts::Basic(
+                EventKind::DraftLongFormContent, // different kind
+                tags(&[&["d", "delete_by_addr_test_bound"]]),
+                "I say wrong thing".to_string(),
+            ),
+            User::Registered1,
+        )?,
+    ];
 
     // Submit all events
     {
@@ -429,11 +429,11 @@ pub async fn delete_by_id_of_others() -> Result<Outcome, Error> {
         .post_event(delete_event, Duration::from_secs(WAIT))
         .await?;
     if !ok {
-        return Ok(Outcome::pass(Some(reason)));
+        Ok(Outcome::pass(Some(reason)))
     } else {
-        return Ok(Outcome::fail(Some(
+        Ok(Outcome::fail(Some(
             "Accepted deletion of someone else's event".to_owned(),
-        )));
+        )))
     }
 }
 
@@ -493,11 +493,11 @@ pub async fn delete_by_addr_of_others() -> Result<Outcome, Error> {
         .post_event(delete_event, Duration::from_secs(WAIT))
         .await?;
     if !ok {
-        return Ok(Outcome::pass(Some(reason)));
+        Ok(Outcome::pass(Some(reason)))
     } else {
-        return Ok(Outcome::fail(Some(
+        Ok(Outcome::fail(Some(
             "Accepted deletion of someone else's event".to_owned(),
-        )));
+        )))
     }
 }
 
@@ -645,7 +645,7 @@ pub async fn submission_of_newer_delete_by_addr() -> Result<Outcome, Error> {
     let time1 = minutes_ago(5);
     let time2 = minutes_ago(2);
 
-    let public_key = GLOBALS.registered1.read().public_key().into();
+    let public_key = GLOBALS.registered1.read().public_key();
 
     // Compute event group address
     let naddr = NAddr {
