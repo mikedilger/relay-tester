@@ -273,6 +273,29 @@ impl Connection {
         Ok(())
     }
 
+    pub async fn trigger_auth_get_challenge(&mut self) -> Result<Option<String>, Error> {
+        if let AuthState::Challenged(challenge) = &self.auth_state {
+            Ok(Some(challenge.to_owned()))
+        } else {
+            // Attempt to post a GiftWrap
+            let event = Globals::make_event(
+                EventParts::Basic(EventKind::GiftWrap, vec![], "".to_string()),
+                User::Stranger,
+            )?;
+            self.post_event(event, Duration::from_secs(crate::WAIT))
+                .await?;
+
+            // Wait
+            let _ = self.wait_for_message(Duration::from_secs(1)).await?; // to await response
+
+            if let AuthState::Challenged(challenge) = &self.auth_state {
+                Ok(Some(challenge.to_owned()))
+            } else {
+                Ok(None)
+            }
+        }
+    }
+
     pub async fn fetch_events(
         &mut self,
         filters: Vec<Filter>,
