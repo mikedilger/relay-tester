@@ -93,7 +93,7 @@ impl Connection {
 
     // Dont call if we are still connected
     pub async fn reconnect(&mut self) -> Result<(), Error> {
-        log!("{}", "*** RECONNECTING ***".color(Color::Red));
+        log!("    {}", "*** RECONNECTING ***".color(Color::Red));
 
         // Wait for a few seconds before reconnecting
         tokio::time::sleep(Duration::from_secs(WAIT_SECONDS)).await;
@@ -135,7 +135,7 @@ impl Connection {
 
     pub async fn disconnect(&mut self) -> Result<(), Error> {
         let msg = Message::Close(None);
-        log!("{} CLOSING", "-->".color(Color::Khaki1));
+        log!("    {} CLOSING", "-->".color(Color::Khaki1));
         let _ = self.inner_send_message(msg).await;
         GLOBALS.disconnected.store(true, Ordering::Relaxed);
         Ok(())
@@ -159,7 +159,7 @@ impl Connection {
         let msg = Message::Text(wire);
         let m = format!("{} {msg}", "-->".color(Color::Khaki1));
         self.inner_send_message(msg).await?;
-        log!("{}", m);
+        log!("    {}", m);
         Ok(())
     }
 
@@ -191,7 +191,7 @@ impl Connection {
                     // Take action
                     match message {
                         Message::Text(s) => {
-                            log!("{} {s}", "<--".color(Color::MediumPurple2a));
+                            log!("    {} {s}", "<--".color(Color::MediumPurple2a));
                             let output: RelayMessage = serde_json::from_str(&s)?;
 
                             match output {
@@ -411,7 +411,7 @@ impl Connection {
     ) -> Result<(bool, String), Error> {
         let wire = format!("[\"EVENT\",{}]", json);
         let msg = Message::Text(wire);
-        log!("{} {msg}", "-->".color(Color::Khaki1));
+        log!("    {} {msg}", "-->".color(Color::Khaki1));
         self.inner_send_message(msg).await?;
         loop {
             match self.wait_for_message(timeout).await? {

@@ -125,7 +125,7 @@ async fn main() -> Result<(), Error> {
 
         for test_item in TestItem::iter() {
             if test_item.stage() == stage {
-                log!("  * TEST: {}", test_item.name());
+                log!("\n--* TEST: {} *--------", test_item.name());
 
                 let mut outcome = if stage == Stage::Unknown {
                     Outcome::err("Test has not been assigned to a stage yet.".to_owned())
