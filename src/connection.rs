@@ -260,6 +260,19 @@ impl Connection {
         Ok(())
     }
 
+    pub async fn authenticate_if_challenged_with_event(
+        &mut self,
+        event: Event,
+    ) -> Result<(), Error> {
+        if matches!(self.auth_state, AuthState::Challenged(_)) {
+            self.auth_state = AuthState::InProgress(event.id);
+            self.send_message(ClientMessage::Auth(Box::new(event)))
+                .await?;
+            let _ = self.wait_for_message(Duration::from_secs(1)).await?; // to await response
+        }
+        Ok(())
+    }
+
     pub async fn fetch_events(
         &mut self,
         filters: Vec<Filter>,
