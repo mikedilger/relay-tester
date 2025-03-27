@@ -24,6 +24,10 @@ pub enum TestItem {
 
     // Pre-Auth: auth
     PromptsForAuthInitially,
+    AuthEventKindVerified,
+    AuthEventRelayVerified,
+    AuthEventChallengeVerified,
+    AuthEventTimeVerified,
 
     // Pre-Auth: eose
     SupportsEose,
@@ -109,11 +113,13 @@ pub enum TestItem {
     SubmissionOfNewerDeletedByAddr,
     DeletePropogatesToReferrers,
 
+    // Auth
+    CanAuthAsUnknown,
+
     // TBD
     ServesPostEoseEvents,
     NoTimeoutWhileSubscribed,
     Nip4DmsRequireAuth,
-    CanAuthAsUnknown,
     UnknownCanWriteOwn,
     UnknownCanReadbackOwn,
     UnknownCanWriteOther,
@@ -260,11 +266,17 @@ impl TestItem {
             }
             DeletePropogatesToReferrers => "Deleting an event deletes its reactions",
 
+            // Auth
+            AuthEventKindVerified => "Auth event kind is verified",
+            AuthEventRelayVerified => "Auth event relay is verified",
+            AuthEventChallengeVerified => "Auth event challenge is verified",
+            AuthEventTimeVerified => "Auth event time is verified",
+            CanAuthAsUnknown => "Can AUTH as unknown",
+
             // TBD
             ServesPostEoseEvents => "Serves post-EOSE events",
             NoTimeoutWhileSubscribed => "No timeout while subscribed",
             Nip4DmsRequireAuth => "Nip-04 DMs require AUTH",
-            CanAuthAsUnknown => "Can AUTH as unknown",
             UnknownCanWriteOwn => "Unknown can write own",
             UnknownCanReadbackOwn => "Unknown can read back own",
             UnknownCanWriteOther => "Unknown can write other",
@@ -312,6 +324,10 @@ impl TestItem {
 
             // Pre-Auth: auth
             PromptsForAuthInitially => false,
+            AuthEventKindVerified => true,
+            AuthEventRelayVerified => true,
+            AuthEventChallengeVerified => true,
+            AuthEventTimeVerified => true,
 
             // Pre-Auth: eose
             SupportsEose => true,
@@ -397,12 +413,14 @@ impl TestItem {
             SubmissionOfNewerDeletedByAddr => true,
             DeletePropogatesToReferrers => false,
 
+            // Stranger
+            CanAuthAsUnknown => false,
+
             // TBD
             ServesPostEoseEvents => true,
             NoTimeoutWhileSubscribed => true,
             Nip4DmsRequireAuth => false,
             GiftwrapsRequireAuth => true,
-            CanAuthAsUnknown => false,
             UnknownCanWriteOwn => true,
             UnknownCanReadbackOwn => true,
             UnknownCanWriteOther => true,
@@ -449,6 +467,10 @@ impl TestItem {
 
             // Pre-Auth: auth
             PromptsForAuthInitially => Stage::Preauth,
+            AuthEventKindVerified => Stage::Preauth,
+            AuthEventRelayVerified => Stage::Preauth,
+            AuthEventChallengeVerified => Stage::Preauth,
+            AuthEventTimeVerified => Stage::Preauth,
 
             // Pre-Auth: eose
             SupportsEose => Stage::Preauth,
@@ -534,6 +556,9 @@ impl TestItem {
             SubmissionOfNewerDeletedByAddr => Stage::Registered,
             DeletePropogatesToReferrers => Stage::Registered,
 
+            // Stranger
+            CanAuthAsUnknown => Stage::Stranger,
+
             // TBD
             ServesPostEoseEvents => Stage::Registered,
             NoTimeoutWhileSubscribed => Stage::Registered,
@@ -559,7 +584,6 @@ impl TestItem {
             // ...
             Nip4DmsRequireAuth => Stage::Stranger,
             GiftwrapsRequireAuth => Stage::Stranger,
-            CanAuthAsUnknown => Stage::Stranger,
             UnknownCanWriteOwn => Stage::Stranger,
             UnknownCanReadbackOwn => Stage::Stranger,
             UnknownCanWriteOther => Stage::Stranger,
@@ -594,6 +618,10 @@ impl TestItem {
 
             // Pre-Auth: auth
             PromptsForAuthInitially => auth::prompts_for_auth_initially().await,
+            AuthEventKindVerified => auth::kind_verified().await,
+            AuthEventRelayVerified => auth::relay_verified().await,
+            AuthEventChallengeVerified => auth::challenge_verified().await,
+            AuthEventTimeVerified => auth::time_verified().await,
 
             // Pre-Auth: eose
             SupportsEose => eose::supports_eose().await,
