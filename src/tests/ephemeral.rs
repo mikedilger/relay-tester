@@ -4,15 +4,14 @@ use crate::error::Error;
 use crate::globals::{EventParts, Globals, User, GLOBALS};
 use crate::outcome::Outcome;
 use crate::WAIT;
-use nostr_types::{EventKind, Filter, PublicKeyHex, Signer};
+use nostr_types::{EventKind, Filter, Signer};
 use std::time::Duration;
 
 pub async fn ephemeral_subscriptions_work() -> Result<Outcome, Error> {
     let filter = {
         let mut filter = Filter::new();
         filter.kinds = vec![EventKind::Ephemeral(25000)];
-        let pkh: PublicKeyHex = GLOBALS.registered1.read().public_key().into();
-        filter.add_author(&pkh);
+        filter.add_author(GLOBALS.registered1.read().public_key());
         filter
     };
 
@@ -108,8 +107,7 @@ pub async fn persists_ephemeral_events() -> Result<Outcome, Error> {
     let filter = {
         let mut filter = Filter::new();
         filter.kinds = vec![EventKind::Ephemeral(25001)];
-        let pkh: PublicKeyHex = GLOBALS.registered1.read().public_key().into();
-        filter.add_author(&pkh);
+        filter.add_author(GLOBALS.registered1.read().public_key());
         filter
     };
 

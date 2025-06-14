@@ -12,7 +12,7 @@ pub async fn supports_eose() -> Result<Outcome, Error> {
         // Use a random author that should have 0 events
         let private_key = PrivateKey::generate();
         let public_key = private_key.public_key();
-        filter.add_author(&public_key.into());
+        filter.add_author(public_key);
         filter.add_event_kind(EventKind::TextNote);
         filter.limit = Some(10);
         filter
@@ -76,7 +76,7 @@ pub async fn keeps_open_incomplete_subscriptions_after_eose() -> Result<Outcome,
         // Use a random author that should have 0 events
         let private_key = PrivateKey::generate();
         let public_key = private_key.public_key();
-        filter.add_author(&public_key.into());
+        filter.add_author(public_key);
         filter.add_event_kind(EventKind::TextNote);
         filter.limit = Some(10);
         filter.until = Some(Unixtime(1_700_000_000)); // some time in the past

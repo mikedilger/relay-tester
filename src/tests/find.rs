@@ -146,11 +146,10 @@ pub async fn find_by_pubkey_and_tags() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
 
     let registered_public_key = GLOBALS.registered1.read().public_key();
-
     let filter = {
         let mut filter = Filter::new();
+        filter.add_author(registered_public_key);
         let pkh: PublicKeyHex = registered_public_key.into();
-        filter.add_author(&pkh);
         filter.add_tag_value('p', pkh.to_string());
         filter
     };
@@ -194,9 +193,8 @@ pub async fn find_by_multiple_tags() -> Result<Outcome, Error> {
 
     let filter = {
         let mut filter = Filter::new();
-        let pkh: PublicKeyHex = registered_public_key.into();
         filter.add_event_kind(EventKind::Other(40383));
-        filter.add_author(&pkh);
+        filter.add_author(registered_public_key);
         filter.add_tag_value('k', "3036".to_string());
         filter.add_tag_value('n', "approved".to_string());
         filter.limit = Some(20);
@@ -213,8 +211,7 @@ pub async fn find_by_pubkey() -> Result<Outcome, Error> {
 
     let filter = {
         let mut filter = Filter::new();
-        let pkh: PublicKeyHex = registered_public_key.into();
-        filter.add_author(&pkh);
+        filter.add_author(registered_public_key);
         filter
     };
 
