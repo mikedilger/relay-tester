@@ -48,7 +48,7 @@ pub async fn since_until_are_inclusive() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![until_filter], Duration::from_secs(WAIT))
+        .fetch_events(until_filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -57,7 +57,7 @@ pub async fn since_until_are_inclusive() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![since_filter], Duration::from_secs(WAIT))
+        .fetch_events(since_filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -90,7 +90,7 @@ pub async fn limit_zero() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?;
 
     if !fetch_result.pre_eose_events.is_empty() {

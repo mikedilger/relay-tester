@@ -22,7 +22,7 @@ pub async fn ephemeral_subscriptions_work() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events_keep_open(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events_keep_open(filter, Duration::from_secs(WAIT))
         .await?;
     let sub_id = fresult.sub_id.unwrap();
 
@@ -116,7 +116,7 @@ pub async fn persists_ephemeral_events() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 

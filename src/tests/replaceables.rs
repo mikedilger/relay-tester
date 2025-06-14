@@ -34,7 +34,7 @@ pub async fn accepts_metadata() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -78,7 +78,7 @@ pub async fn replaces_metadata() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -125,7 +125,7 @@ pub async fn accepts_contact_list() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -169,7 +169,7 @@ pub async fn replaces_contact_list() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -211,7 +211,7 @@ pub async fn replaced_events_still_available_by_id() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -246,7 +246,7 @@ pub async fn replaceable_event_removes_previous() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -312,7 +312,7 @@ pub async fn addressable_event_removes_previous() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -378,7 +378,7 @@ pub async fn find_replaceable_event() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -413,7 +413,7 @@ pub async fn find_addressable_event() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 

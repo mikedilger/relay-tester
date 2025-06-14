@@ -60,7 +60,7 @@ pub async fn delete_by_id() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -141,7 +141,7 @@ pub async fn delete_by_addr() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -255,7 +255,7 @@ pub async fn delete_by_addr_only_older() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -363,7 +363,7 @@ pub async fn delete_by_addr_bound_by_tag() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 

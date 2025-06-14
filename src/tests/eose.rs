@@ -23,7 +23,7 @@ pub async fn supports_eose() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?;
 
     match (fresult.close_msg, fresult.post_eose_events) {
@@ -55,7 +55,7 @@ pub async fn closes_complete_subscriptions_after_eose() -> Result<Outcome, Error
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?;
 
     match (fresult.close_msg, fresult.post_eose_events) {
@@ -88,7 +88,7 @@ pub async fn keeps_open_incomplete_subscriptions_after_eose() -> Result<Outcome,
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?;
 
     match (fresult.close_msg, fresult.post_eose_events) {

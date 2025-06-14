@@ -29,7 +29,7 @@ pub async fn newest_to_oldest() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -70,7 +70,7 @@ pub async fn newest_events_when_limited() -> Result<Outcome, Error> {
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter], Duration::from_secs(WAIT))
+        .fetch_events(filter, Duration::from_secs(WAIT))
         .await?
         .into_events();
 
@@ -238,7 +238,7 @@ async fn find(filter: Filter, num_matches_expected: Option<usize>) -> Result<Out
         .write()
         .as_mut()
         .unwrap()
-        .fetch_events(vec![filter.clone()], Duration::from_secs(WAIT))
+        .fetch_events(filter.clone(), Duration::from_secs(WAIT))
         .await?;
     let maybe_error = fresult.close_msg.clone();
     let fetched = fresult.into_events();
