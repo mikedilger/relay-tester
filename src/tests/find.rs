@@ -3,18 +3,18 @@ use crate::error::Error;
 use crate::globals::GLOBALS;
 use crate::outcome::Outcome;
 use crate::WAIT;
-use nostr_types::{Event, EventKind, Filter, IdHex, PublicKeyHex, Signer, Unixtime};
+use nostr_types::{Event, EventKind, Filter, Id, PublicKeyHex, Signer, Unixtime};
 use std::time::Duration;
 
 pub async fn newest_to_oldest() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
 
     // Collect all the Ids from Event Group A
-    let ids: Vec<IdHex> = GLOBALS
+    let ids: Vec<Id> = GLOBALS
         .event_group_a
         .read()
         .iter()
-        .map(|rm| rm.0.id.into())
+        .map(|rm| rm.0.id)
         .collect();
 
     // Filter to read them all back
@@ -105,12 +105,12 @@ pub async fn find_by_id() -> Result<Outcome, Error> {
     maybe_submit_event_group_a().await?;
 
     // Collect all the Ids from Event Group A that are findable
-    let ids: Vec<IdHex> = GLOBALS
+    let ids: Vec<Id> = GLOBALS
         .event_group_a
         .read()
         .iter()
         .filter(|v| v.1)
-        .map(|rm| rm.0.id.into())
+        .map(|rm| rm.0.id)
         .collect();
 
     let num = ids.len();
@@ -132,9 +132,7 @@ pub async fn find_by_pubkey_and_kind() -> Result<Outcome, Error> {
 
     let filter = {
         let mut filter = Filter::new();
-        let pkh1: PublicKeyHex = registered_public_key.into();
-        let pkh2: PublicKeyHex = stranger_public_key.into();
-        filter.authors = vec![pkh1, pkh2];
+        filter.authors = vec![registered_public_key, stranger_public_key];
         filter.kinds = vec![EventKind::TextNote, EventKind::ContactList];
         filter
     };
