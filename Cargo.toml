@@ -22,7 +22,7 @@ colorful = "0.3"
 futures-util = "0.3"
 http = "1.1"
 lazy_static = "1.4"
-nostr-types = { git = "https://github.com/mikedilger/nostr-types", rev = "ea530b17212c49557b13b65b917f9666bbc96d0f" }
+nostr-types = { git = "https://github.com/mikedilger/nostr-types", rev = "63fafc5e0a178a573fc67f333c1d6be5fdc5c858" }
 parking_lot = { version = "0.12", features = [ "deadlock_detection" ] }
 rand = "0.8"
 rand_core = "0.6"
