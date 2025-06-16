@@ -162,7 +162,7 @@ pub async fn find_by_kind_and_tags() -> Result<Outcome, Error> {
         let mut filter = Filter::new();
         filter.kinds = vec![
             EventKind::TextNote,
-            EventKind::Other(33383),
+            EventKind::Other(9999),
             EventKind::ContactList,
         ];
         filter.add_tag_value('n', "approved".to_string());
@@ -191,7 +191,7 @@ pub async fn find_by_multiple_tags() -> Result<Outcome, Error> {
 
     let filter = {
         let mut filter = Filter::new();
-        filter.add_event_kind(EventKind::Other(33383));
+        filter.add_event_kind(EventKind::Other(9999));
         filter.add_author(registered_public_key);
         filter.add_tag_value('k', "3036".to_string());
         filter.add_tag_value('n', "approved".to_string());
