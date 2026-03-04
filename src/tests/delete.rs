@@ -429,11 +429,29 @@ pub async fn delete_by_id_of_others() -> Result<Outcome, Error> {
         .post_event(delete_event, Duration::from_secs(WAIT))
         .await?;
     if !ok {
-        Ok(Outcome::pass(Some(reason)))
-    } else {
+        return Ok(Outcome::pass(Some(reason))) // Possible, since the relay has seen the original event
+    }
+
+    // The deletion was accepted, but let's see if the event was actually deleted (hopefully not):
+
+    // Fetch back the original event
+    let mut filter = Filter::new();
+    filter.ids = vec![event_id.into()];
+    let events = GLOBALS
+        .connection
+        .write()
+        .as_mut()
+        .unwrap()
+        .fetch_events(filter, Duration::from_secs(WAIT))
+        .await?
+        .into_events();
+
+    if events.is_empty() {
         Ok(Outcome::fail(Some(
             "Accepted deletion of someone else's event".to_owned(),
         )))
+    } else {
+        Ok(Outcome::pass(None))
     }
 }
 
